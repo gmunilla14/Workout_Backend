@@ -1,0 +1,19 @@
+{
+  "name": "workout_backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon index",
+    "test": "jest --watchAll"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^27.5.1",
+    "supertest": "^6.2.2"
+  },
+  "dependencies": {
+    "express": "^4.17.3"
+  }
+}

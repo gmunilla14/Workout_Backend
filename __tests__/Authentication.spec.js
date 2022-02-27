@@ -1,13 +1,40 @@
 const request = require("supertest");
 const app = require("../app");
+const User = require("../models/User");
+const sequelize = require("../config/database");
+
+beforeAll(() => {
+  return sequelize.sync();
+});
+
+beforeEach(() => {
+  return User.destroy({ truncate: true });
+});
+
+const defaultUser = {
+  username: "user1",
+  email: "user1@mail.com",
+  password: "Password1",
+};
+
+const postUser = (user = defaultUser) => {
+  return request(app).post("/api/1.0/signup").send(user);
+};
 
 describe("Sign Up User", () => {
   it("returns 200 status when sending valid signup request", async () => {
-    const response = await request(app).post("/api/1.0/signup").send({
-      username: "user1",
-      email: "user1@mail.com",
-      password: "Password1",
-    });
+    const response = await postUser();
     expect(response.status).toBe(200);
+  });
+
+  it("returns success message on successful signup", async () => {
+    const response = await postUser();
+    expect(response.body.message).toBe("User created");
+  });
+
+  it("saves the user to the database", async () => {
+    await postUser();
+    const userList = await User.findAll();
+    expect(userList.length).toBe(1);
   });
 });

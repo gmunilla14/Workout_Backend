@@ -37,4 +37,19 @@ describe("Sign Up User", () => {
     const userList = await User.findAll();
     expect(userList.length).toBe(1);
   });
+
+  it("saves the user with username, email, and password and email to the database", async () => {
+    await postUser();
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+    expect(savedUser.username).toBe(defaultUser.username);
+    expect(savedUser.email).toBe(defaultUser.email);
+    expect(savedUser.password).toBeTruthy();
+  });
+
+  it("hashes the password in the database", async () => {
+    await postUser();
+    const savedUser = await User.findAll()[0];
+    expect(savedUser.password).not.toBe(defaultUser.password);
+  });
 });

@@ -41,8 +41,8 @@ const signInUser = (user = defaultUser) => {
 const activateAccount = (activationToken, jwtToken) => {
   return request(app)
     .post("/api/1.0/activate")
-    .send(activationToken)
-    .set("x-auth-token", jwtToken);
+    .set("x-auth-token", jwtToken)
+    .send({ token: activationToken });
 };
 
 describe("Sign Up User", () => {
@@ -131,7 +131,7 @@ describe("Sign Up User", () => {
   ])(
     "when %s is %s, return %s is received",
     async (field, value, expectedMessage) => {
-      let user = defaultUser;
+      let user = { ...defaultUser };
 
       user[field] = value;
       const response = await postUser(user);
@@ -151,11 +151,12 @@ describe("Sign Up User", () => {
 describe("Account Activation", () => {
   it("returns 200 status when account is successfully activated", async () => {
     //Create New User
-    const postResponse = await postUser();
-
+    const postResponse = await postUser(defaultUser);
     //Get new user
     const userList = await User.findAll();
     const savedUser = userList[0];
+
+    console.log(savedUser.activationToken);
 
     //Activate new user
     const response = await activateAccount(
@@ -195,7 +196,7 @@ describe("Account Activation", () => {
     //Get updated activated user
     const newUserList = await User.findAll();
     const updatedUser = newUserList[0];
-    expect(updatedUser.activationToken).toBeFalsey();
+    expect(updatedUser.activationToken).not.toBeTruthy();
     expect(updatedUser.inactive).toBe(false);
   });
 
@@ -255,8 +256,6 @@ describe("Account Activation", () => {
     expect(response.body.message).toBe("Invalid activation request");
   });
 });
-
-//-------------------------------------NEED TO INCORPORATE ACCOUNT ACTIVATION INTO SIGNIN-------------------------
 
 describe("Sign In User", () => {
   it("returns status 200 on successful sign in to active account", async () => {

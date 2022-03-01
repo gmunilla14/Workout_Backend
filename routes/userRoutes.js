@@ -85,4 +85,22 @@ router.post("/api/1.0/signup", async (req, res) => {
   res.send({ message: "User created", token });
 });
 
+router.post("/api/1.0/activate", async (req, res) => {
+  const token = jwt.decode(req.header("x-auth-token"));
+
+  try {
+    const user = await User.findOne({ where: { email: token.email } });
+
+    if (user.activationToken !== req.body.token) {
+      return res.status(400).send({ message: "Invalid activation request" });
+    }
+    user.inactive = false;
+    user.activationToken = null;
+    await user.save();
+  } catch (err) {
+    return res.status(400).send({ message: "Invalid activation request" });
+  }
+  res.send({ message: "Account activated" });
+});
+
 module.exports = router;

@@ -18,12 +18,13 @@ const defaultUser = {
   password: "Password1",
 };
 
-const username_null = "Username cannot be null";
+const username_null = "Username is required";
 const username_size = "Username must have min 3 and max 32 characters";
-const email_null = "Email cannot be null";
+const email_null = "Email is required";
 const email_invalid = "Email is not valid";
-const password_null = "Password cannot be null";
-const password_size = "Password must be at least 6 characters";
+const password_null = "Password is required";
+const password_size =
+  "Password must be at least 6 characters and at most 32 characters";
 const password_pattern =
   "Password must have at least 1 uppercase, 1 lowercase letter and 1 number";
 
@@ -106,7 +107,8 @@ describe("Sign Up User", () => {
     ["email", "user.mail.com", email_invalid],
     ["email", "user@mail", email_invalid],
     ["password", null, password_null],
-    ["password", "Asdfg", password_size],
+    ["password", "Asdf2", password_size],
+    ["password", "Ad3".repeat(11), password_size],
     ["password", "alllowercase", password_pattern],
     ["password", "ALLUPPERCASE", password_pattern],
     ["password", "12344567", password_pattern],
@@ -128,7 +130,7 @@ describe("Sign Up User", () => {
   it("returns two validation errors when username and email are null", async () => {
     let user = { ...defaultUser, username: null, email: null };
     const response = await postUser(user);
-    expect(response.body.validationErrors[username]).toBe(username_null);
-    expect(response.body.validationErrors[email]).toBe(email_null);
+    expect(response.body.validationErrors["username"]).toBe(username_null);
+    expect(response.body.validationErrors["email"]).toBe(email_null);
   });
 });

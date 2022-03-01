@@ -32,6 +32,19 @@ const postUser = (user = defaultUser) => {
   return request(app).post("/api/1.0/signup").send(user);
 };
 
+const signInUser = (user = defaultUser) => {
+  return request(app)
+    .post("/api/1.0/signin")
+    .send({ email: user.email, password: user.password });
+};
+
+const activateAccount = (activationToken, jwtToken) => {
+  return request(app)
+    .post("/api/1.0/activate")
+    .send(activationToken)
+    .set("x-auth-token", jwtToken);
+};
+
 describe("Sign Up User", () => {
   it("returns 200 status when sending valid signup request", async () => {
     const response = await postUser();
@@ -132,5 +145,208 @@ describe("Sign Up User", () => {
     const response = await postUser(user);
     expect(response.body.validationErrors["username"]).toBe(username_null);
     expect(response.body.validationErrors["email"]).toBe(email_null);
+  });
+});
+
+describe("Account Activation", () => {
+  it("returns 200 status when account is successfully activated", async () => {
+    //Create New User
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Activate new user
+    const response = await activateAccount(
+      savedUser.activationToken,
+      postResponse.body.token
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it("returns Account activated when account is successfully activated", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Activate new user
+    const response = await activateAccount(
+      savedUser.activationToken,
+      postResponse.body.token
+    );
+    expect(response.body.message).toBe("Account activated");
+  });
+
+  it("removes activation token and sets user to active when account is successfully activated", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Activate new user
+    await activateAccount(savedUser.activationToken, postResponse.body.token);
+
+    //Get updated activated user
+    const newUserList = await User.findAll();
+    const updatedUser = newUserList[0];
+    expect(updatedUser.activationToken).toBeFalsey();
+    expect(updatedUser.inactive).toBe(false);
+  });
+
+  it("returns status 400 if jwttoken is not correct", async () => {
+    //Create new user
+    await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Attempt activation with invalid jwt token
+    const response = await activateAccount(
+      savedUser.activationToken,
+      "fake-token"
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("returns Invalid activation request if jwttoken is not correct", async () => {
+    //Create new user
+    await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Attempt activation with invalid jwt token
+    const response = await activateAccount(
+      savedUser.activationToken,
+      "fake-token"
+    );
+    expect(response.body.message).toBe("Invalid activation request");
+  });
+
+  it("returns status 400 if incorrect activation token is sent", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Attempt activation on user with incorrect activation token
+    const response = await activateAccount(
+      "efwfwafqwfewq",
+      postResponse.body.token
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("returns Invalid activation request if incorrect activation token is sent", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Attempt activation on user with incorrect activation token
+    const response = await activateAccount(
+      "fdsawwfewe",
+      postResponse.body.token
+    );
+    expect(response.body.message).toBe("Invalid activation request");
+  });
+});
+
+//-------------------------------------NEED TO INCORPORATE ACCOUNT ACTIVATION INTO SIGNIN-------------------------
+
+describe("Sign In User", () => {
+  it("returns status 200 on successful sign in to active account", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Activate new user
+    await activateAccount(savedUser.activationToken, postResponse.body.token);
+
+    //Sign in as new user
+    const response = await signInUser();
+    expect(response.status).toBe(200);
+  });
+
+  it("returns JWT token with id, username, and email on successful sign in to active account", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Activate new user
+    await activateAccount(savedUser.activationToken, postResponse.body.token);
+
+    //Sign in new user
+    const response = await signInUser();
+    const decoded = jwt.decode(response.body.token);
+    expect(decoded.id).toBe(savedUser.id);
+    expect(decoded.username).toBe(defaultUser.username);
+    expect(decoded.email).toBe(defaultUser.email);
+  });
+
+  it("returns status 400 when incorrect password is sent to active account", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Activate new user
+    await activateAccount(savedUser.activationToken, postResponse.body.token);
+
+    //Attempt to sign in with incorrect password
+    const user = { ...defaultUser, password: "incorrectps" };
+    const response = await signInUser(user);
+    expect(response.status).toBe(400);
+  });
+
+  it("returns Invalid email or password when incorrect password is sent to active account", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    //Activate new user
+    await activateAccount(savedUser.activationToken, postResponse.body.token);
+
+    //Attempt to sign in with incorrect password
+    const user = { ...defaultUser, password: "incorrectps" };
+    const response = await signInUser(user);
+    expect(response.body.message).toBe("Invalid email or password");
+  });
+
+  it("returns status 400 when unused email is sent", async () => {
+    const response = await signInUser();
+    expect(response.status).toBe(400);
+  });
+
+  it("returns Invalid email or password when unused email is sent", async () => {
+    const response = await signInUser();
+    expect(response.body.message).toBe("Invalid email or password");
+  });
+
+  it("returns 403 status when user is inactive", async () => {
+    await postUser();
+    const response = await signInUser();
+    expect(response.status).toBe(403);
+  });
+
+  it("returns User is inactive when user is inactive", async () => {
+    await postUser();
+    const response = await signInUser();
+    expect(response.body.message).toBe("User is inactive");
   });
 });

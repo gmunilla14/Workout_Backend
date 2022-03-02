@@ -103,4 +103,30 @@ router.post("/api/1.0/activate", async (req, res) => {
   res.send({ message: "Account activated" });
 });
 
+router.post("/api/1.0/signin", async (req, res) => {
+  try {
+    const user = await User.findOne({ where: { email: req.body.email } });
+    const token = jwt.sign(
+      { id: user.id, username: user.username, email: user.email },
+      process.env.SECRET_KEY
+    );
+
+    const validPassword = await bcrypt.compare(
+      req.body.password,
+      user.password
+    );
+
+    if (!validPassword) {
+      return res.status(400).send({ message: "Invalid email or password" });
+    }
+
+    if (user.inactive) {
+      return res.status(403).send({ message: "User is inactive" });
+    }
+    res.send({ token });
+  } catch (err) {
+    return res.status(400).send({ message: "Invalid email or password" });
+  }
+});
+
 module.exports = router;

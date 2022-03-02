@@ -113,7 +113,10 @@ describe("Create and View Muscles", () => {
   });
 
   it("returns a list of muscles to authorized active user", async () => {
+    //Create Muscle
     await postMuscle(correctString, "Bicep");
+
+    //Create User
     const userResponse = await request(app).post("/api/1.0/signup").send({
       username: "user1",
       email: "user1@mail.com",
@@ -123,11 +126,13 @@ describe("Create and View Muscles", () => {
     const userList = await User.findAll();
     const savedUser = userList[0];
 
+    //Activate User
     await request(app)
       .post("/api/1.0/activate")
       .set("x-auth-token", userToken)
       .send({ token: savedUser.activationToken });
 
+    //Get Muscles
     const muscleResponse = await getMuscles(userToken);
     const muscle = muscleResponse.body[0];
     expect(muscleResponse.body.length).toBe(1);

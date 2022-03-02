@@ -9,7 +9,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  return Muscle.destroy({ truncate: true });
+  Muscle.destroy({ truncate: true });
+  return User.destroy({ truncate: true });
 });
 
 const correctString = "jf320jfjje0cjcnoi20923n4oijojfj29";
@@ -89,7 +90,7 @@ describe("Create and View Muscles", () => {
 
   it("returns 403 for inactive user", async () => {
     await postMuscle(correctString, "Bicep");
-    const userResponse = request(app).post("/api/1.0/signup").send({
+    const userResponse = await request(app).post("/api/1.0/signup").send({
       username: "user1",
       email: "user1@mail.com",
       password: "Password1",
@@ -101,7 +102,7 @@ describe("Create and View Muscles", () => {
 
   it("returns User inactive for inactive user", async () => {
     await postMuscle(correctString, "Bicep");
-    const userResponse = request(app).post("/api/1.0/signup").send({
+    const userResponse = await request(app).post("/api/1.0/signup").send({
       username: "user1",
       email: "user1@mail.com",
       password: "Password1",
@@ -113,13 +114,12 @@ describe("Create and View Muscles", () => {
 
   it("returns a list of muscles to authorized active user", async () => {
     await postMuscle(correctString, "Bicep");
-    const userResponse = request(app).post("/api/1.0/signup").send({
+    const userResponse = await request(app).post("/api/1.0/signup").send({
       username: "user1",
       email: "user1@mail.com",
       password: "Password1",
     });
     const userToken = userResponse.body.token;
-
     const userList = await User.findAll();
     const savedUser = userList[0];
 
@@ -128,10 +128,9 @@ describe("Create and View Muscles", () => {
       .set("x-auth-token", userToken)
       .send({ token: savedUser.activationToken });
 
-    await getMuscles(userToken);
-    const muscleList = Muscle.findAll();
-    const muscle = muscleList[0];
-    expect(muscleList.length).toBe(1);
+    const muscleResponse = await getMuscles(userToken);
+    const muscle = muscleResponse.body[0];
+    expect(muscleResponse.body.length).toBe(1);
     expect(muscle.name).toBe("Bicep");
   });
 });

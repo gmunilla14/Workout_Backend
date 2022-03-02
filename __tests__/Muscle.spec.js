@@ -2,6 +2,7 @@ const request = require("supertest");
 const app = require("../app");
 const Muscle = require("../models/Muscle");
 const sequelize = require("../config/database");
+const User = require("../models/User");
 
 beforeAll(() => {
   return sequelize.sync();
@@ -20,6 +21,10 @@ const postMuscle = (string, name) => {
       name,
     },
   });
+};
+
+const getMuscles = (token) => {
+  return request(app).get("/api/1.0/muscles").set("x-auth-token", token);
 };
 
 describe("Create and View Muscles", () => {
@@ -68,5 +73,65 @@ describe("Create and View Muscles", () => {
       });
 
     expect(response.status).toBe(400);
+  });
+
+  it("returns 401 for user trying to get muscles without authentication", async () => {
+    await postMuscle(correctString, "Bicep");
+    const response = await getMuscles(" ");
+    expect(response.status).toBe(401);
+  });
+
+  it("returns Not authenticated for user trying to get muscles without authentication", async () => {
+    await postMuscle(correctString, "Bicep");
+    const response = await getMuscles(" ");
+    expect(response.body.message).toBe("Not authenticated");
+  });
+
+  it("returns 403 for inactive user", async () => {
+    await postMuscle(correctString, "Bicep");
+    const userResponse = request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = userResponse.body.token;
+    const response = await getMuscles(userToken);
+    expect(response.status).toBe(403);
+  });
+
+  it("returns User inactive for inactive user", async () => {
+    await postMuscle(correctString, "Bicep");
+    const userResponse = request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = userResponse.body.token;
+    const response = await getMuscles(userToken);
+    expect(response.body.message).toBe("User inactive");
+  });
+
+  it("returns a list of muscles to authorized active user", async () => {
+    await postMuscle(correctString, "Bicep");
+    const userResponse = request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = userResponse.body.token;
+
+    const userList = await User.findAll();
+    const savedUser = userList[0];
+
+    await request(app)
+      .post("/api/1.0/activate")
+      .set("x-auth-token", userToken)
+      .send({ token: savedUser.activationToken });
+
+    await getMuscles(userToken);
+    const muscleList = Muscle.findAll();
+    const muscle = muscleList[0];
+    expect(muscleList.length).toBe(1);
+    expect(muscle.name).toBe("Bicep");
   });
 });

@@ -2,14 +2,13 @@ const request = require("supertest");
 const app = require("../app");
 const Muscle = require("../models/Muscle");
 const sequelize = require("../config/database");
-const jwt = require("jsonwebtoken");
 
 beforeAll(() => {
   return sequelize.sync();
 });
 
 beforeEach(() => {
-  return User.destroy({ truncate: true });
+  return Muscle.destroy({ truncate: true });
 });
 
 const correctString = "jf320jfjje0cjcnoi20923n4oijojfj29";
@@ -48,6 +47,26 @@ describe("Create and View Muscles", () => {
 
   it("returns 400 status if a muscle name is not included", async () => {
     const response = await postMuscle("notstring", null);
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 400 status if there is no muscle included", async () => {
+    const response = await request(app).post("/api/1.0/muscles").send({
+      string: correctString,
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 400 status if there is no string included", async () => {
+    const response = await request(app)
+      .post("/api/1.0/muscles")
+      .send({
+        muscle: {
+          name: "Bicep",
+        },
+      });
+
     expect(response.status).toBe(400);
   });
 });

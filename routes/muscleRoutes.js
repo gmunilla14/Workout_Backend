@@ -1,11 +1,7 @@
 const express = require("express");
 const Muscle = require("../models/Muscle");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
-const crypto = require("crypto");
 const Joi = require("joi");
-const { isTypedArray } = require("util/types");
 
 const correctString = "jf320jfjje0cjcnoi20923n4oijojfj29";
 
@@ -18,8 +14,6 @@ router.post("/api/1.0/muscles", async (req, res) => {
   });
 
   const { error } = schema.validate(req.body);
-  console.log(req.body);
-  console.log(error);
   if (error) {
     return res.status(400).send();
   }

@@ -156,8 +156,6 @@ describe("Account Activation", () => {
     const userList = await User.findAll();
     const savedUser = userList[0];
 
-    console.log(savedUser.activationToken);
-
     //Activate new user
     const response = await activateAccount(
       savedUser.activationToken,

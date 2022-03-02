@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const Joi = require("joi");
+const auth = require("../middleware/auth");
 
 router.post("/api/1.0/signup", async (req, res) => {
   //------------------------------Input Validation--------------------------------
@@ -85,11 +86,9 @@ router.post("/api/1.0/signup", async (req, res) => {
   res.send({ message: "User created", token });
 });
 
-router.post("/api/1.0/activate", async (req, res) => {
-  const token = jwt.decode(req.header("x-auth-token"));
-
+router.post("/api/1.0/activate", auth, async (req, res) => {
   try {
-    const user = await User.findOne({ where: { email: token.email } });
+    const user = await User.findOne({ where: { email: req.user.email } });
 
     if (user.activationToken !== req.body.token) {
       return res.status(400).send({ message: "Invalid activation request" });

@@ -198,7 +198,7 @@ describe("Account Activation", () => {
     expect(updatedUser.inactive).toBe(false);
   });
 
-  it("returns status 400 if jwttoken is not correct", async () => {
+  it("returns status 401 if jwttoken is not correct", async () => {
     //Create new user
     await postUser();
 
@@ -211,10 +211,10 @@ describe("Account Activation", () => {
       savedUser.activationToken,
       "fake-token"
     );
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
   });
 
-  it("returns Invalid activation request if jwttoken is not correct", async () => {
+  it("returns Not authenticated if jwttoken is not correct", async () => {
     //Create new user
     await postUser();
 
@@ -227,7 +227,7 @@ describe("Account Activation", () => {
       savedUser.activationToken,
       "fake-token"
     );
-    expect(response.body.message).toBe("Invalid activation request");
+    expect(response.body.message).toBe("Not authenticated");
   });
 
   it("returns status 400 if incorrect activation token is sent", async () => {

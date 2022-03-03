@@ -397,9 +397,9 @@ describe("Delete User", () => {
       .delete("/api/1.0/users")
       .set("x-auth-token", userResponse.body.token)
       .send({ adminString });
+
+    const userList = await User.findAll();
+
+    expect(userList.length).toBe(0);
   });
-
-  const userList = await User.findAll();
-
-  expect(userList.length).toBe(0);
 });

@@ -6,6 +6,8 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const Joi = require("joi");
 const auth = require("../middleware/auth");
+const req = require("express/lib/request");
+const res = require("express/lib/response");
 
 router.post("/api/1.0/signup", async (req, res) => {
   //------------------------------Input Validation--------------------------------
@@ -125,6 +127,32 @@ router.post("/api/1.0/signin", async (req, res) => {
     res.send({ token });
   } catch (err) {
     return res.status(400).send({ message: "Invalid email or password" });
+  }
+});
+
+router.delete("/api/1.0/users", auth, async (req, res) => {
+  const adminString = process.env.ADMIN_STRING;
+
+  const schema = Joi.object({
+    adminString: Joi.string().required(),
+  });
+
+  const { error } = schema.validate(req.body);
+
+  if (error) {
+    return res.status(401).send();
+  }
+
+  if (req.body.adminString !== adminString) {
+    return res.status(401).send();
+  }
+  const user = req.user;
+
+  try {
+    await User.destroy({ where: { id: user.id } });
+    res.send();
+  } catch (err) {
+    res.status(400).send();
   }
 });
 

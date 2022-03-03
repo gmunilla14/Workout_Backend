@@ -18,6 +18,8 @@ const defaultUser = {
   password: "Password1",
 };
 
+const adminString = process.env.ADMIN_STRING;
+
 const username_null = "Username is required";
 const username_size = "Username must have min 3 and max 32 characters";
 const email_null = "Email is required";
@@ -346,4 +348,58 @@ describe("Sign In User", () => {
     const response = await signInUser();
     expect(response.body.message).toBe("User is inactive");
   });
+});
+
+describe("Delete User", () => {
+  it("returns 401 status when incorrectly authenticated", async () => {
+    await postUser();
+    const response = await request(app)
+      .delete("/api/1.0/users")
+      .set("x-auth-token", "fdasfdsafdsa")
+      .send({ adminString });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 401 status when adminString is not included", async () => {
+    const userResponse = await postUser();
+    const response = await request(app)
+      .delete("/api/1.0/users")
+      .set("x-auth-token", userResponse.body.token)
+      .send({});
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 401 status when adminString is incorrect", async () => {
+    const userResponse = await postUser();
+    const response = await request(app)
+      .delete("/api/1.0/users")
+      .set("x-auth-token", userResponse.body.token)
+      .send({ adminString: "afjklfwefje" });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 200 status when correctly authenticated", async () => {
+    const userResponse = await postUser();
+    const response = await request(app)
+      .delete("/api/1.0/users")
+      .set("x-auth-token", userResponse.body.token)
+      .send({ adminString });
+
+    expect(response.status).toBe(200);
+  });
+
+  it("removes user from the database", async () => {
+    const userResponse = await postUser();
+    await request(app)
+      .delete("/api/1.0/users")
+      .set("x-auth-token", userResponse.body.token)
+      .send({ adminString });
+  });
+
+  const userList = await User.findAll();
+
+  expect(userList.length).toBe(0);
 });

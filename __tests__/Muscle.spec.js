@@ -13,7 +13,7 @@ beforeEach(() => {
   return User.destroy({ truncate: true });
 });
 
-const correctString = "jf320jfjje0cjcnoi20923n4oijojfj29";
+const correctString = process.env.ADMIN_STRING;
 
 const postMuscle = (string, name) => {
   return request(app).post("/api/1.0/muscles").send({

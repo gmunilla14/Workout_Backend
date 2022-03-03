@@ -5,7 +5,7 @@ const Joi = require("joi");
 const auth = require("../middleware/auth");
 const User = require("../models/User");
 
-const correctString = "jf320jfjje0cjcnoi20923n4oijojfj29";
+const correctString = process.env.ADMIN_STRING;
 
 router.post("/api/1.0/muscles", async (req, res) => {
   const schema = Joi.object({

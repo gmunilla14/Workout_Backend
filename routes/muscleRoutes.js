@@ -5,7 +5,7 @@ const Joi = require("joi");
 const auth = require("../middleware/auth");
 const User = require("../models/User");
 
-const correctString = process.env.ADMIN_STRING;
+const adminString = process.env.ADMIN_STRING;
 
 router.post("/api/1.0/muscles", async (req, res) => {
   const schema = Joi.object({
@@ -20,7 +20,7 @@ router.post("/api/1.0/muscles", async (req, res) => {
     return res.status(400).send();
   }
 
-  if (req.body.string !== correctString) {
+  if (req.body.string !== adminString) {
     return res.status(401).send();
   }
 

@@ -54,8 +54,10 @@ const createExercise = (name, muscles, notes, userToken) => {
 };
 
 beforeAll(() => {
-  muscles.forEach((muscle) => {
-    request(app)
+  sequelize.sync();
+
+  muscles.forEach(async (muscle) => {
+    await request(app)
       .post("/api/1.0/muscles")
       .send({
         string: process.env.ADMIN_STRING,
@@ -64,10 +66,11 @@ beforeAll(() => {
         },
       });
   });
-  return sequelize.sync();
+  return;
 });
 
 beforeEach(() => {
+  User.destroy({ truncate: true });
   return Exercise.destroy({ truncate: true });
 });
 

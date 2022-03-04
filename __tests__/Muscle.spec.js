@@ -143,7 +143,9 @@ describe("Create and View Muscles", () => {
 describe("Delete muscles", () => {
   it("returns 401 status when adminString is not included", async () => {
     await postMuscle(correctString, "Bicep");
-    const response = await request(app).delete("/api/1.0/muscles").send({});
+    const response = await request(app)
+      .delete("/api/1.0/muscles")
+      .send({ muscle: "Bicep" });
     expect(response.status).toBe(401);
   });
 
@@ -151,7 +153,7 @@ describe("Delete muscles", () => {
     await postMuscle(correctString, "Bicep");
     const response = await request(app)
       .delete("/api/1.0/muscles")
-      .send({ adminString: "fjkelwfdfsa" });
+      .send({ adminString: "fjkelwfdfsa", muscle: "Bicep" });
     expect(response.status).toBe(401);
   });
 
@@ -159,17 +161,51 @@ describe("Delete muscles", () => {
     await postMuscle(correctString, "Bicep");
     const response = await request(app)
       .delete("/api/1.0/muscles")
-      .send({ adminString: correctString });
+      .send({ adminString: correctString, muscle: "Bicep" });
     expect(response.status).toBe(200);
   });
 
-  it("removes user from the database", async () => {
+  it("removes muscle from the database", async () => {
     await postMuscle(correctString, "Bicep");
-    const response = await request(app)
+    await request(app)
       .delete("/api/1.0/muscles")
-      .send({ adminString: correctString });
+      .send({ adminString: correctString, muscle: "Bicep" });
 
     const muscleList = await Muscle.findAll();
     expect(muscleList.length).toBe(0);
+  });
+
+  it("removes the correct muscle from the database", async () => {
+    await postMuscle(correctString, "Bicep");
+    await postMuscle(correctString, "Tricep");
+
+    await request(app)
+      .delete("/api/1.0/muscles")
+      .send({ adminString: correctString, muscle: "Bicep" });
+
+    const muscleList = await Muscle.findAll();
+    const muscle = muscleList[0];
+
+    expect(muscle.name, "Tricep");
+  });
+
+  it("returns 400 status when nonexistant muscle is provided", async () => {
+    await postMuscle(correctString, "Tricep");
+
+    const response = await request(app)
+      .delete("/api/1.0/muscles")
+      .send({ adminString: correctString, muscle: "Bicep" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("returns Muscle does not exist when nonexistant muscle is provided", async () => {
+    await postMuscle(correctString, "Tricep");
+
+    const response = await request(app)
+      .delete("/api/1.0/muscles")
+      .send({ adminString: correctString, muscle: "Bicep" });
+
+    expect(response.body.message).toBe("Muscle does not exist");
   });
 });

@@ -403,3 +403,17 @@ describe("Delete User", () => {
     expect(userList.length).toBe(0);
   });
 });
+
+describe("Get user activation token", () => {
+  it("provides activation token for authenticated user", async () => {
+    const userResponse = await postUser();
+    const response = await request(app)
+      .get("/api/1.0/token")
+      .set("x-auth-token", userResponse.body.token);
+
+    const userList = await User.findAll();
+    const user = userList[0];
+
+    expect(response.body.token).toBe(user.activationToken);
+  });
+});

@@ -139,3 +139,37 @@ describe("Create and View Muscles", () => {
     expect(muscle.name).toBe("Bicep");
   });
 });
+
+describe("Delete muscles", () => {
+  it("returns 401 status when adminString is not included", async () => {
+    await postMuscle(correctString, "Bicep");
+    const response = await request(app).delete("/api/1.0/muscles").send({});
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 401 status when adminString is incorrect", async () => {
+    await postMuscle(correctString, "Bicep");
+    const response = await request(app)
+      .delete("/api/1.0/muscles")
+      .send({ adminString: "fjkelwfdfsa" });
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 200 status when adminString is correct", async () => {
+    await postMuscle(correctString, "Bicep");
+    const response = await request(app)
+      .delete("/api/1.0/muscles")
+      .send({ adminString: correctString });
+    expect(response.status).toBe(200);
+  });
+
+  it("removes user from the database", async () => {
+    await postMuscle(correctString, "Bicep");
+    const response = await request(app)
+      .delete("/api/1.0/muscles")
+      .send({ adminString: correctString });
+
+    const muscleList = await Muscle.findAll();
+    expect(muscleList.length).toBe(0);
+  });
+});

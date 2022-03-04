@@ -186,7 +186,7 @@ describe("Delete muscles", () => {
     const muscleList = await Muscle.findAll();
     const muscle = muscleList[0];
 
-    expect(muscle.name, "Tricep");
+    expect(muscle.name).toBe("Tricep");
   });
 
   it("returns 400 status when nonexistant muscle is provided", async () => {

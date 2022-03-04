@@ -5,8 +5,6 @@ const Joi = require("joi");
 const auth = require("../middleware/auth");
 const User = require("../models/User");
 
-const adminString = process.env.ADMIN_STRING;
-
 router.post("/api/1.0/muscles", async (req, res) => {
   const schema = Joi.object({
     string: Joi.string().required(),
@@ -20,7 +18,7 @@ router.post("/api/1.0/muscles", async (req, res) => {
     return res.status(400).send();
   }
 
-  if (req.body.string !== adminString) {
+  if (req.body.string !== process.env.ADMIN_STRING) {
     return res.status(401).send();
   }
 
@@ -45,6 +43,26 @@ router.get("/api/1.0/muscles", auth, async (req, res) => {
   } catch (err) {
     return res.status(401).send({ message: "Not authenticated" });
   }
+});
+
+router.delete("/api/1.0/muscles", async (req, res) => {
+  if (req.body.adminString !== process.env.ADMIN_STRING) {
+    return res.status(401).send();
+  }
+
+  try {
+    const deleteMuscle = await Muscle.destroy({
+      where: { name: req.body.muscle },
+    });
+
+    if (!deleteMuscle) {
+      return res.status(400).send({ message: "Muscle does not exist" });
+    }
+  } catch (err) {
+    return res.status(400).send({ message: "Muscle does not exist" });
+  }
+
+  res.send({ message: "Muscle deleted" });
 });
 
 module.exports = router;

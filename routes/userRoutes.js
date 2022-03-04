@@ -6,8 +6,6 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const Joi = require("joi");
 const auth = require("../middleware/auth");
-const req = require("express/lib/request");
-const res = require("express/lib/response");
 
 router.post("/api/1.0/signup", async (req, res) => {
   //------------------------------Input Validation--------------------------------
@@ -150,10 +148,15 @@ router.delete("/api/1.0/users", auth, async (req, res) => {
 
   try {
     await User.destroy({ where: { id: user.id } });
-    res.send();
+    res.send({ message: "User deleted" });
   } catch (err) {
     res.status(400).send();
   }
+});
+
+router.get("/api/1.0/token", auth, async (req, res) => {
+  const user = await User.findOne({ where: { email: req.user.email } });
+  res.send({ token: user.activationToken });
 });
 
 module.exports = router;

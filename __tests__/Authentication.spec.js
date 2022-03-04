@@ -413,7 +413,6 @@ describe("Get user activation token", () => {
 
     const userList = await User.findAll();
     const user = userList[0];
-
     expect(response.body.token).toBe(user.activationToken);
   });
 });

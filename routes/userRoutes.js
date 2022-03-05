@@ -80,15 +80,14 @@ router.post("/api/1.0/signup", async (req, res) => {
   try {
     let newUser = new User(user);
     newUser = await newUser.save();
-
     //---------------------------------------------Return JWT Token-----------------------
     const token = jwt.sign(
-      { id: newUser.id, username, email },
+      { id: newUser._id, username, email },
       process.env.SECRET_KEY
     );
-    res.send({ message: "User created", token });
+    return res.send({ message: "User created", token });
   } catch (err) {
-    res.send({ error: err });
+    return res.send({ error: err.message });
   }
 });
 

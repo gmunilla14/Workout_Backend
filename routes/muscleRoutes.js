@@ -1,9 +1,9 @@
 const express = require("express");
-const Muscle = require("../models/Muscle");
+const { Muscle } = require("../models/Muscle");
 const router = express.Router();
 const Joi = require("joi");
 const auth = require("../middleware/auth");
-const User = require("../models/User");
+const { User } = require("../models/User");
 
 router.post("/api/1.0/muscles", async (req, res) => {
   const schema = Joi.object({
@@ -23,10 +23,11 @@ router.post("/api/1.0/muscles", async (req, res) => {
   }
 
   try {
-    await Muscle.create(req.body.muscle);
+    let newMuscle = new Muscle(req.body.muscle);
+    newMuscle = await newMuscle.save();
     res.send({ message: "Muscle created" });
   } catch (err) {
-    res.status(400).send();
+    res.status(400).send({ message: err });
   }
 });
 
@@ -38,7 +39,7 @@ router.get("/api/1.0/muscles", auth, async (req, res) => {
       return res.status(403).send({ message: "User inactive" });
     }
 
-    const muscles = await Muscle.findAll();
+    const muscles = await Muscle.find();
     res.send(muscles);
   } catch (err) {
     return res.status(401).send({ message: "Not authenticated" });
@@ -51,8 +52,8 @@ router.delete("/api/1.0/muscles", async (req, res) => {
   }
 
   try {
-    const deleteMuscle = await Muscle.destroy({
-      where: { name: req.body.muscle },
+    const deleteMuscle = await Muscle.findOneAndDelete({
+      name: req.body.muscle,
     });
 
     if (!deleteMuscle) {

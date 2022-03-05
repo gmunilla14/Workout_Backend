@@ -20,6 +20,8 @@
     "express": "^4.17.3",
     "joi": "^17.6.0",
     "jsonwebtoken": "^8.5.1",
+    "mongodb-memory-server": "^8.4.0",
+    "mongoose": "^6.2.4",
     "sequelize": "^6.17.0",
     "sqlite3": "^5.0.2"
   }

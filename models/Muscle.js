@@ -1,15 +1,8 @@
-const Sequelize = require("sequelize");
-const sequelize = require("../config/database");
+const mongoose = require("mongoose");
 
-class Muscle extends Sequelize.Model {}
+const muscleSchema = new mongoose.Schema({
+  name: { type: String },
+});
 
-Muscle.init(
-  {
-    name: {
-      type: Sequelize.STRING,
-    },
-  },
-  { sequelize, modelName: "muscle" }
-);
-
-module.exports = Muscle;
+const Muscle = mongoose.model("Muscle", muscleSchema);
+exports.Muscle = Muscle;

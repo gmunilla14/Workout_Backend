@@ -1,16 +1,27 @@
 const request = require("supertest");
 const app = require("../app");
-const Muscle = require("../models/Muscle");
-const sequelize = require("../config/database");
-const User = require("../models/User");
+const { Muscle } = require("../models/Muscle");
+const { User } = require("../models/User");
+const { MongoMemoryServer } = require("mongodb-memory-server");
+const mongoose = require("mongoose");
+let mongoServer;
 
-beforeAll(() => {
-  return sequelize.sync();
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
+  mongoose.connect(mongoUri, {
+    useUnifiedTopology: true,
+  });
 });
 
-beforeEach(() => {
-  Muscle.destroy({ truncate: true });
-  return User.destroy({ truncate: true });
+beforeEach(async () => {
+  await Muscle.deleteMany({});
+  return await User.deleteMany({});
+});
+
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongoServer.stop();
 });
 
 const correctString = process.env.ADMIN_STRING;
@@ -46,7 +57,7 @@ describe("Create and View Muscles", () => {
 
   it("creates muscle in database", async () => {
     await postMuscle(correctString, "Bicep");
-    const muscleList = await Muscle.findAll();
+    const muscleList = await Muscle.find();
     const muscle = muscleList[0];
     expect(muscle.name).toBe("Bicep");
   });
@@ -123,7 +134,7 @@ describe("Create and View Muscles", () => {
       password: "Password1",
     });
     const userToken = userResponse.body.token;
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate User
@@ -171,7 +182,7 @@ describe("Delete muscles", () => {
       .delete("/api/1.0/muscles")
       .send({ adminString: correctString, muscle: "Bicep" });
 
-    const muscleList = await Muscle.findAll();
+    const muscleList = await Muscle.find();
     expect(muscleList.length).toBe(0);
   });
 
@@ -183,7 +194,7 @@ describe("Delete muscles", () => {
       .delete("/api/1.0/muscles")
       .send({ adminString: correctString, muscle: "Bicep" });
 
-    const muscleList = await Muscle.findAll();
+    const muscleList = await Muscle.find();
     const muscle = muscleList[0];
 
     expect(muscle.name).toBe("Tricep");

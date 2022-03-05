@@ -1,14 +1,37 @@
 const request = require("supertest");
 const app = require("../app");
-const Exercise = require("../models/Exercise");
-const User = require("../models/User");
-const Muscle = require("../models/Muscle");
-
-const sequelize = require("../config/database");
-
+const { Exercise } = require("../models/Exercise");
+const { User } = require("../models/User");
+const { Muscle } = require("../models/Muscle");
+const mongoose = require("mongoose");
+const { MongoMemoryServer } = require("mongodb-memory-server");
 const muscles = ["Bicep", "Tricep", "Quad", "Hamstring", "Rear Delt"];
 
 const adminString = process.env.ADMIN_STRING;
+
+let mongoServer;
+
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
+
+  await mongoose.connect(mongoServer.getUri(), {
+    useUnifiedTopology: true,
+  });
+});
+
+beforeEach(async () => {
+  await User.deleteMany({});
+  return await Exercise.deleteMany({});
+});
+
+afterEach(async () => {
+  await Muscle.deleteMany({});
+});
+
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongoServer.stop();
+});
 
 const defaultExercise = {
   name: "Curls",
@@ -22,6 +45,23 @@ const no_muscles = "Exercise must have at least one muscle";
 const wrong_muscles = "Must choose valid muscles";
 const notes_size = "Notes may be at most 200 characters";
 
+const createUser = async () => {
+  const userResponse = await request(app).post("/api/1.0/signup").send({
+    username: "user1",
+    email: "user1@mail.com",
+    password: "Password1",
+  });
+  const userToken = userResponse.body.token;
+  return userToken;
+};
+
+const activateUser = async (jwtToken, activationToken) => {
+  await request(app)
+    .post("/api/1.0/activate")
+    .set("x-auth-token", jwtToken)
+    .send({ token: activationToken });
+};
+
 const createActiveUser = async () => {
   //Create User
   const userResponse = await request(app).post("/api/1.0/signup").send({
@@ -30,7 +70,7 @@ const createActiveUser = async () => {
     password: "Password1",
   });
   const userToken = userResponse.body.token;
-  const userList = await User.findAll();
+  const userList = await User.find();
   const savedUser = userList[0];
 
   //Activate User
@@ -53,36 +93,15 @@ const createExercise = (name, muscles, notes, userToken) => {
     });
 };
 
-beforeAll(() => {
-  sequelize.sync();
-
-  muscles.forEach(async (muscle) => {
-    await request(app)
-      .post("/api/1.0/muscles")
-      .send({
-        string: process.env.ADMIN_STRING,
-        muscle: {
-          name: muscle,
-        },
-      });
-  });
-  return;
-});
-
-beforeEach(() => {
-  User.destroy({ truncate: true });
-  return Exercise.destroy({ truncate: true });
-});
-
 describe("Create exercise", () => {
   it("returns 401 status when trying to create without being authenticated", async () => {
     const response = createExercise("Curls", ["Bicep"], "", " fdsafd");
     expect(response.status).toBe(401);
   });
 
-  it("returns Not authorized when trying to create without being authenticated", async () => {
+  it("returns Not authenticated when trying to create without being authenticated", async () => {
     const response = await createExercise("Curls", ["Bicep"], "", " fdsafd");
-    expect(response.body.message).toBe("Not authorized");
+    expect(response.body.message).toBe("Not authenticated");
   });
 
   it("returns 403 for inactive user", async () => {
@@ -121,7 +140,18 @@ describe("Create exercise", () => {
   });
 
   it("returns status 200 when created by active authenticated user", async () => {
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
     const response = await createExercise(
       "Curls",
       ["Bicep"],
@@ -133,7 +163,18 @@ describe("Create exercise", () => {
   });
 
   it("returns Created exercise when created by active authenticated user", async () => {
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
     const response = await createExercise(
       "Curls",
       ["Bicep"],
@@ -145,35 +186,65 @@ describe("Create exercise", () => {
   });
 
   it("creates exercise in database", async () => {
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
     await createExercise("Curls", ["Bicep"], "Notes", userToken);
 
-    const exerciseList = Exercise.findAll();
+    const exerciseList = Exercise.find();
 
     expect(exerciseList.length).toBe(1);
   });
 
   it("creates exercise in database ", async () => {
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
     await createExercise("Curls", ["Bicep"], "Notes", userToken);
 
-    const exerciseList = Exercise.findAll();
+    const exerciseList = Exercise.find();
     const exercise = exerciseList[0];
-
-    const userList = User.findAll();
-    const user = userList[0];
 
     expect(exercise.name).toBe("Curls");
     expect(exercise.muscles.length).toBe(1);
     expect(exercise.notes).toBe("Notes");
-    expect(exercise.uid).toBe(user.id);
+    expect(exercise.uid).toBe(savedUser._id);
   });
 
   it("creates exercise with muscle that is ID of correct muscle", async () => {
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
     await createExercise("Curls", ["Bicep"], "Notes", userToken);
 
-    const exerciseList = Exercise.findAll();
+    const exerciseList = Exercise.find();
     const exercise = exerciseList[0];
 
     const muscle = Muscle.findOne({ where: { name: "Bicep" } });
@@ -194,7 +265,18 @@ describe("Create exercise", () => {
     let exercise = { ...defaultExercise };
 
     exercise[field] = value;
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
     const response = await createExercise(
       exercise.name,
       exercise.muscles,
@@ -206,7 +288,18 @@ describe("Create exercise", () => {
   });
 
   it("returns two validation errors when name is null and muscles are wrong", async () => {
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
     const response = await createExercise(null, ["crabs"], "notes", userToken);
 
     expect(response.body.validationErrors["name"]).toBe(name_null);
@@ -214,7 +307,18 @@ describe("Create exercise", () => {
   });
 
   it("creates exercise with uid of admin when admin string is provided", async () => {
-    const userToken = createActiveUser();
+    //Create User
+    await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken = createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
 
     await request(app)
       .post("/api/1.0/exercises")
@@ -226,7 +330,7 @@ describe("Create exercise", () => {
         adminString,
       });
 
-    const exerciseList = Exercise.findAll();
+    const exerciseList = Exercise.find();
     const exercise = exerciseList[0];
 
     expect(exercise.uid).toBe("admin");

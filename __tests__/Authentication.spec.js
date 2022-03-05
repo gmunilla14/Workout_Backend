@@ -1,15 +1,27 @@
 const request = require("supertest");
 const app = require("../app");
-const User = require("../models/User");
-const sequelize = require("../config/database");
+const { User } = require("../models/User");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const { MongoMemoryServer } = require("mongodb-memory-server");
 
-beforeAll(() => {
-  return sequelize.sync();
+let mongoServer;
+
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
+  mongoose.connect(mongoUri, {
+    useUnifiedTopology: true,
+  });
 });
 
 beforeEach(() => {
-  return User.destroy({ truncate: true });
+  return User.deleteMany({});
+});
+
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongoServer.stop();
 });
 
 const defaultUser = {
@@ -60,13 +72,13 @@ describe("Sign Up User", () => {
 
   it("saves the user to the database", async () => {
     await postUser();
-    const userList = await User.findAll();
+    const userList = await User.find();
     expect(userList.length).toBe(1);
   });
 
   it("saves the user with username, email, and password to the database", async () => {
     await postUser();
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
     expect(savedUser.username).toBe(defaultUser.username);
     expect(savedUser.email).toBe(defaultUser.email);
@@ -75,14 +87,14 @@ describe("Sign Up User", () => {
 
   it("hashes the password in the database", async () => {
     await postUser();
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
     expect(savedUser.password).not.toBe(defaultUser.password);
   });
 
   it("creates the user in inactive mode", async () => {
     await postUser();
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
     expect(savedUser.inactive).toBe(true);
   });
@@ -90,14 +102,14 @@ describe("Sign Up User", () => {
   it("creates user in inactive mode even if post is set to inactive false", async () => {
     let user = { ...defaultUser, inactive: false };
     await postUser(user);
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
     expect(savedUser.inactive).toBe(true);
   });
 
   it("creates user with activation token", async () => {
     await postUser();
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
     expect(savedUser.activationToken).toBeTruthy();
   });
@@ -106,7 +118,7 @@ describe("Sign Up User", () => {
     const response = await postUser();
     const returnedToken = response.body.token;
     const decoded = jwt.decode(returnedToken);
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
     expect(decoded.id).toBe(savedUser.id);
     expect(decoded.username).toBe(defaultUser.username);
@@ -155,7 +167,7 @@ describe("Account Activation", () => {
     //Create New User
     const postResponse = await postUser(defaultUser);
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate new user
@@ -171,7 +183,7 @@ describe("Account Activation", () => {
     const postResponse = await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate new user
@@ -187,14 +199,14 @@ describe("Account Activation", () => {
     const postResponse = await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate new user
     await activateAccount(savedUser.activationToken, postResponse.body.token);
 
     //Get updated activated user
-    const newUserList = await User.findAll();
+    const newUserList = await User.find();
     const updatedUser = newUserList[0];
     expect(updatedUser.activationToken).not.toBeTruthy();
     expect(updatedUser.inactive).toBe(false);
@@ -205,7 +217,7 @@ describe("Account Activation", () => {
     await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Attempt activation with invalid jwt token
@@ -221,7 +233,7 @@ describe("Account Activation", () => {
     await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Attempt activation with invalid jwt token
@@ -263,7 +275,7 @@ describe("Sign In User", () => {
     const postResponse = await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate new user
@@ -279,7 +291,7 @@ describe("Sign In User", () => {
     const postResponse = await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate new user
@@ -298,7 +310,7 @@ describe("Sign In User", () => {
     const postResponse = await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate new user
@@ -315,7 +327,7 @@ describe("Sign In User", () => {
     const postResponse = await postUser();
 
     //Get new user
-    const userList = await User.findAll();
+    const userList = await User.find();
     const savedUser = userList[0];
 
     //Activate new user
@@ -398,7 +410,7 @@ describe("Delete User", () => {
       .set("x-auth-token", userResponse.body.token)
       .send({ adminString });
 
-    const userList = await User.findAll();
+    const userList = await User.find();
 
     expect(userList.length).toBe(0);
   });
@@ -411,7 +423,7 @@ describe("Get user activation token", () => {
       .get("/api/1.0/token")
       .set("x-auth-token", userResponse.body.token);
 
-    const userList = await User.findAll();
+    const userList = await User.find();
     const user = userList[0];
     expect(response.body.token).toBe(user.activationToken);
   });

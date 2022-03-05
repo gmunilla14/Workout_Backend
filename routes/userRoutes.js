@@ -1,5 +1,5 @@
 const express = require("express");
-const User = require("../models/User");
+const { User } = require("../models/User");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -76,19 +76,25 @@ router.post("/api/1.0/signup", async (req, res) => {
     inactive: true,
     activationToken,
   };
-  const newUser = await User.create(user);
 
-  //---------------------------------------------Return JWT Token-----------------------
-  const token = jwt.sign(
-    { id: newUser.id, username, email },
-    process.env.SECRET_KEY
-  );
-  res.send({ message: "User created", token });
+  try {
+    let newUser = new User(user);
+    newUser = await newUser.save();
+
+    //---------------------------------------------Return JWT Token-----------------------
+    const token = jwt.sign(
+      { id: newUser.id, username, email },
+      process.env.SECRET_KEY
+    );
+    res.send({ message: "User created", token });
+  } catch (err) {
+    res.send({ error: err });
+  }
 });
 
 router.post("/api/1.0/activate", auth, async (req, res) => {
   try {
-    const user = await User.findOne({ where: { email: req.user.email } });
+    const user = await User.findOne({ email: req.user.email });
 
     if (user.activationToken !== req.body.token) {
       return res.status(400).send({ message: "Invalid activation request" });
@@ -104,7 +110,7 @@ router.post("/api/1.0/activate", auth, async (req, res) => {
 
 router.post("/api/1.0/signin", async (req, res) => {
   try {
-    const user = await User.findOne({ where: { email: req.body.email } });
+    const user = await User.findOne({ email: req.body.email });
     const token = jwt.sign(
       { id: user.id, username: user.username, email: user.email },
       process.env.SECRET_KEY
@@ -147,7 +153,7 @@ router.delete("/api/1.0/users", auth, async (req, res) => {
   const user = req.user;
 
   try {
-    await User.destroy({ where: { id: user.id } });
+    await User.findByIdAndDelete(user.id);
     res.send({ message: "User deleted" });
   } catch (err) {
     res.status(400).send();
@@ -155,7 +161,7 @@ router.delete("/api/1.0/users", auth, async (req, res) => {
 });
 
 router.get("/api/1.0/token", auth, async (req, res) => {
-  const user = await User.findOne({ where: { email: req.user.email } });
+  const user = await User.findOne({ email: req.user.email });
   res.send({ token: user.activationToken });
 });
 

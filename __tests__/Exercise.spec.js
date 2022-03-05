@@ -14,8 +14,19 @@ let mongoServer;
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
 
-  await mongoose.connect(mongoServer.getUri(), {
+  mongoose.connect(mongoServer.getUri(), {
     useUnifiedTopology: true,
+  });
+
+  muscles.forEach(async (muscle) => {
+    return request(app)
+      .post("/api/1.0/muscles")
+      .send({
+        string: adminString,
+        muscle: {
+          name: muscle,
+        },
+      });
   });
 });
 

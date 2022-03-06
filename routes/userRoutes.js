@@ -94,7 +94,6 @@ router.post("/api/1.0/signup", async (req, res) => {
 router.post("/api/1.0/activate", auth, async (req, res) => {
   try {
     const user = await User.findOne({ email: req.user.email });
-
     if (user.activationToken !== req.body.token) {
       return res.status(400).send({ message: "Invalid activation request" });
     }

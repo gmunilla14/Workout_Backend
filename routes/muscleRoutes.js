@@ -15,7 +15,7 @@ router.post("/api/1.0/muscles", async (req, res) => {
 
   const { error } = schema.validate(req.body);
   if (error) {
-    return res.status(400).send();
+    return res.status(400).send({message: error});
   }
 
   if (req.body.string !== process.env.ADMIN_STRING) {

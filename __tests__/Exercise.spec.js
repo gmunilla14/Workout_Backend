@@ -19,7 +19,7 @@ beforeAll(async () => {
   });
 
   muscles.forEach(async (muscle) => {
-    return request(app)
+    return await request(app)
       .post("/api/1.0/muscles")
       .send({
         string: adminString,
@@ -50,7 +50,8 @@ const name_null = "Name is required";
 const name_size = "Name must be at most 32 characters";
 const no_muscles = "Exercise must have at least one muscle";
 const wrong_muscles = "Must choose valid muscles";
-const notes_size = "Notes may be at most 200 characters";
+const muscles_list = "Muscles must be provided in an array"
+const notes_size = "Notes must be at most 200 characters";
 
 const createUser = async () => {
   const userResponse = await request(app).post("/api/1.0/signup").send({
@@ -226,7 +227,7 @@ describe("Create exercise", () => {
     ["name", null, name_null],
     ["name", "", name_size],
     ["name", "a".repeat(33), name_size],
-    ["muscles", null, no_muscles],
+    ["muscles", null, muscles_list],
     ["muscles", [], no_muscles],
     ["muscles", ["clams"], wrong_muscles],
     ["muscles", ["Bicep", "clams"], wrong_muscles],
@@ -236,14 +237,19 @@ describe("Create exercise", () => {
 
     exercise[field] = value;
     const bicep = await Muscle.findOne({ name: "Bicep" });
+    let muscleIDs
+    try {
+       muscleIDs = exercise.muscles.map((muscle) => {
+        if (muscle === "Bicep") {
+          return bicep._id;
+        } else {
+          return muscle;
+        }
+      });
+    } catch(err){
+       muscleIDs = exercise.muscles
+    }
 
-    const muscleIDs = exercise.muscles.map((muscle) => {
-      if (muscle === "Bicep") {
-        return bicep._id;
-      } else {
-        return muscle;
-      }
-    });
     //Create User
     const userToken = await createUser();
     const userList = await User.find();
@@ -275,7 +281,7 @@ describe("Create exercise", () => {
     expect(response.body.validationErrors["muscles"]).toBe(wrong_muscles);
   });
 
-  it("creates exercise with uid of admin when admin string is provided", async () => {
+  fit("creates exercise with uid of admin when admin string is provided", async () => {
     //Create User
     const userToken = await createUser();
     const userList = await User.find();

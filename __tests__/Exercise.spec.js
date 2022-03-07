@@ -50,7 +50,7 @@ const name_null = "Name is required";
 const name_size = "Name must be at most 32 characters";
 const no_muscles = "Exercise must have at least one muscle";
 const wrong_muscles = "Must choose valid muscles";
-const muscles_list = "Muscles must be provided in an array"
+const muscles_list = "Muscles must be provided in an array";
 const notes_size = "Notes must be at most 200 characters";
 
 const createUser = async () => {
@@ -237,17 +237,17 @@ describe("Create exercise", () => {
 
     exercise[field] = value;
     const bicep = await Muscle.findOne({ name: "Bicep" });
-    let muscleIDs
+    let muscleIDs;
     try {
-       muscleIDs = exercise.muscles.map((muscle) => {
+      muscleIDs = exercise.muscles.map((muscle) => {
         if (muscle === "Bicep") {
           return bicep._id;
         } else {
           return muscle;
         }
       });
-    } catch(err){
-       muscleIDs = exercise.muscles
+    } catch (err) {
+      muscleIDs = exercise.muscles;
     }
 
     //Create User
@@ -281,7 +281,7 @@ describe("Create exercise", () => {
     expect(response.body.validationErrors["muscles"]).toBe(wrong_muscles);
   });
 
-  fit("creates exercise with uid of admin when admin string is provided", async () => {
+  it("creates exercise with uid of admin when admin string is provided", async () => {
     //Create User
     const userToken = await createUser();
     const userList = await User.find();
@@ -290,15 +290,18 @@ describe("Create exercise", () => {
     //Activate User
     await activateUser(userToken, savedUser.activationToken);
 
-    await request(app)
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+    const response = await request(app)
       .post("/api/1.0/exercises")
       .set("x-auth-token", userToken)
       .send({
         name: defaultExercise.name,
-        muscles: defaultExercise.muscles,
+        muscles: [bicep._id],
         notes: defaultExercise.notes,
         adminString,
       });
+
+    console.log(response.body);
 
     const exerciseList = await Exercise.find();
     const exercise = exerciseList[0];

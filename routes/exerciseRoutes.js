@@ -6,8 +6,6 @@ const auth = require("../middleware/auth");
 const { User } = require("../models/User");
 const { Muscle } = require("../models/Muscle");
 
-const correctString = process.env.ADMIN_STRING;
-
 router.post("/api/1.0/exercises", auth, async (req, res) => {
   const schema = Joi.object({
     name: Joi.string().required().min(1).max(32).messages({
@@ -27,6 +25,7 @@ router.post("/api/1.0/exercises", auth, async (req, res) => {
       "string.max": "Notes must be at most 200 characters",
     }),
     uid: Joi.string(),
+    adminString: Joi.string().max(100),
   });
 
   const { error } = schema.validate(req.body, { abortEarly: false });
@@ -85,19 +84,15 @@ router.post("/api/1.0/exercises", auth, async (req, res) => {
     });
   }
   const { name, muscles, notes } = req.body;
-  console.log('---------------------------------------')
-  console.log(req.body.adminString)
-  console.log(correctString)
-  if (req.body.adminString === correctString) {
+  if (req.body.adminString === process.env.ADMIN_STRING) {
     const exercise = await new Exercise({
       name,
       muscles,
       notes,
-      uid: 'admin',
+      uid: "admin",
     });
 
     await exercise.save();
-
   } else {
     const userList = await User.find({ email: req.user.email });
     const savedUser = userList[0];
@@ -113,9 +108,7 @@ router.post("/api/1.0/exercises", auth, async (req, res) => {
     });
 
     await exercise.save();
-
   }
-
 
   res.send({ message: "Created exercise" });
 });

@@ -309,3 +309,254 @@ describe("Create exercise", () => {
     expect(exercise.uid).toBe("admin");
   });
 });
+
+const getExercises = async (userToken) => {
+  return await request(app)
+    .get("/api/1.0/exercises")
+    .set("x-auth-token", userToken);
+};
+
+describe("View Exercises", () => {
+  it("returns 200 if trying to view correctly", async () => {
+    //Create User
+    const userToken = await createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
+
+    const response = await request(app)
+      .get("/api/1.0/exercises")
+      .set("x-auth-token", userToken);
+    expect(response.status).toBe(200);
+  });
+
+  it("returns No exercises message if there are no exercises", async () => {
+    //Create User
+    const userToken = await createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
+
+    const response = getExercises(userToken);
+    expect(response.body.message).toBe("No exercises");
+  });
+
+  it("returns both admin exercises and user exercises", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+    const tricep = await Muscle.findOne({ name: "Tricep" });
+
+    //Create User
+    const userToken = await createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
+
+    //Create User exercise
+    await createExercise("Curls", [bicep._id], "notes", userToken);
+
+    //Create Admin Exercise
+    await request(app)
+      .post("/api/1.0/exercises")
+      .set("x-auth-token", userToken)
+      .send({
+        name: defaultExercise.name,
+        muscles: [tricep._id],
+        notes: defaultExercise.notes,
+        adminString,
+      });
+
+    const response = getExercises(userToken);
+    expect(response.body.exercises.length).toBe(2);
+  });
+
+  it("returns exercise with all fields", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+
+    //Create User
+    const userToken = await createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
+
+    await createExercise("Curls", [bicep._id], "notes", userToken);
+
+    const response = getExercises(userToken);
+
+    const savedExercise = response.body.exercises[0];
+
+    expect(savedExercise.name).toBe(defaultExercise.name);
+    expect(savedExercise.muscles).toBe([bicep._id]);
+    expect(savedExercise.notes).toBe(defaultExercise.notes);
+    expect(savedExercise.uid).toBe(savedUser._id);
+  });
+
+  it("only returns admin exercises and user exercises", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+    const tricep = await Muscle.findOne({ name: "Tricep" });
+    const quad = await Muscle.findOne({ name: "Quad" });
+
+    //Create User 1
+    const userToken1 = await createUser();
+    const userList1 = await User.find();
+    const savedUser1 = userList1[0];
+
+    //Activate User 1
+    await activateUser(userToken1, savedUser1.activationToken);
+
+    //Create User 2
+    const userResponse = await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken2 = userResponse.body.token;
+    const userList2 = await User.find().sort({ created_at: -1 });
+    const savedUser2 = userList2[0];
+
+    //Activate User 2
+    await activateUser(userToken2, savedUser2.activationToken);
+
+    //Create User 1 exercise
+    await createExercise("Curls", [bicep._id], "notes", userToken1);
+
+    //Create User 2 exercise
+    await createExercise("Curls", [quad._id], "notes", userToken2);
+
+    //Create Admin Exercise
+    await request(app)
+      .post("/api/1.0/exercises")
+      .set("x-auth-token", userToken1)
+      .send({
+        name: defaultExercise.name,
+        muscles: [tricep._id],
+        notes: defaultExercise.notes,
+        adminString,
+      });
+
+    const response = getExercises(userToken1);
+
+    expect(response.body.exercises.length).toBe(2);
+  });
+
+  it("returns status 401 if not authenticated", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+
+    //Create User
+    const userToken = await createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
+
+    await createExercise("Curls", [bicep._id], "notes", userToken);
+
+    const response = await request(app)
+      .get("/api/1.0/exercises")
+      .set("x-auth-token", "fdqefwqfewq");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns Not authenticated if not authenticated", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+
+    //Create User
+    const userToken = await createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
+
+    await createExercise("Curls", [bicep._id], "notes", userToken);
+
+    const response = await request(app)
+      .get("/api/1.0/exercises")
+      .set("x-auth-token", "fdqefwqfewq");
+
+    expect(response.body.message).toBe("Not authenticated");
+  });
+
+  it("returns status 403 if user is not activated", async () => {
+    const tricep = await Muscle.findOne({ name: "Tricep" });
+
+    //Create User 1
+    const userToken1 = await createUser();
+    const userList1 = await User.find();
+    const savedUser1 = userList1[0];
+
+    //Activate User 1
+    await activateUser(userToken1, savedUser1.activationToken);
+
+    //Create Admin Exercise
+    await request(app)
+      .post("/api/1.0/exercises")
+      .set("x-auth-token", userToken1)
+      .send({
+        name: defaultExercise.name,
+        muscles: [tricep._id],
+        notes: defaultExercise.notes,
+        adminString,
+      });
+
+    //Create User 2
+    const userResponse = await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken2 = userResponse.body.token;
+
+    const response = await request(app)
+      .get("/api/1.0/exercises")
+      .set("x-auth-token", userToken2);
+
+    expect(response.status).toBe(403);
+  });
+
+  it("returns User inactive when user is inactive", async () => {
+    const tricep = await Muscle.findOne({ name: "Tricep" });
+
+    //Create User 1
+    const userToken1 = await createUser();
+    const userList1 = await User.find();
+    const savedUser1 = userList1[0];
+
+    //Activate User 1
+    await activateUser(userToken1, savedUser1.activationToken);
+
+    //Create Admin Exercise
+    await request(app)
+      .post("/api/1.0/exercises")
+      .set("x-auth-token", userToken1)
+      .send({
+        name: defaultExercise.name,
+        muscles: [tricep._id],
+        notes: defaultExercise.notes,
+        adminString,
+      });
+
+    //Create User 2
+    const userResponse = await request(app).post("/api/1.0/signup").send({
+      username: "user1",
+      email: "user1@mail.com",
+      password: "Password1",
+    });
+    const userToken2 = userResponse.body.token;
+
+    const response = await request(app)
+      .get("/api/1.0/exercises")
+      .set("x-auth-token", userToken2);
+
+    expect(response.body.message).toBe("User inactive");
+  });
+});

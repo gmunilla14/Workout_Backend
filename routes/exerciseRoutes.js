@@ -5,6 +5,7 @@ const Joi = require("joi");
 const auth = require("../middleware/auth");
 const { User } = require("../models/User");
 const { Muscle } = require("../models/Muscle");
+const res = require("express/lib/response");
 
 router.post("/api/1.0/exercises", auth, async (req, res) => {
   const schema = Joi.object({
@@ -111,6 +112,23 @@ router.post("/api/1.0/exercises", auth, async (req, res) => {
   }
 
   res.send({ message: "Created exercise" });
+});
+
+router.get("/api/1.0/exercises", auth, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (user.inactive) {
+    return res.status(403).send({ message: "User inactive" });
+  }
+
+  const exercises = await Exercise.find({
+    uid: { $in: ["admin", req.user.id] },
+  });
+
+  if (exercises.length < 1) {
+    return res.send({ message: "No exercises" });
+  }
+
+  res.send({ exercises });
 });
 
 module.exports = router;

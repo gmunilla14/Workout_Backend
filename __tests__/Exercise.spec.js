@@ -180,7 +180,6 @@ describe("Create exercise", () => {
     await createExercise("Curls", [bicep._id], "Notes", userToken);
 
     const exerciseList = await Exercise.find();
-    console.log(exerciseList);
     expect(exerciseList.length).toBe(1);
   });
 
@@ -301,8 +300,6 @@ describe("Create exercise", () => {
         adminString,
       });
 
-    console.log(response.body);
-
     const exerciseList = await Exercise.find();
     const exercise = exerciseList[0];
 
@@ -341,7 +338,7 @@ describe("View Exercises", () => {
     //Activate User
     await activateUser(userToken, savedUser.activationToken);
 
-    const response = getExercises(userToken);
+    const response = await getExercises(userToken);
     expect(response.body.message).toBe("No exercises");
   });
 
@@ -371,7 +368,7 @@ describe("View Exercises", () => {
         adminString,
       });
 
-    const response = getExercises(userToken);
+    const response = await getExercises(userToken);
     expect(response.body.exercises.length).toBe(2);
   });
 
@@ -388,14 +385,14 @@ describe("View Exercises", () => {
 
     await createExercise("Curls", [bicep._id], "notes", userToken);
 
-    const response = getExercises(userToken);
+    const response = await getExercises(userToken);
 
     const savedExercise = response.body.exercises[0];
 
     expect(savedExercise.name).toBe(defaultExercise.name);
-    expect(savedExercise.muscles).toBe([bicep._id]);
+    expect(savedExercise.muscles[0]).toBe(String(bicep._id));
     expect(savedExercise.notes).toBe(defaultExercise.notes);
-    expect(savedExercise.uid).toBe(savedUser._id);
+    expect(savedExercise.uid).toBe(String(savedUser._id));
   });
 
   it("only returns admin exercises and user exercises", async () => {
@@ -413,8 +410,8 @@ describe("View Exercises", () => {
 
     //Create User 2
     const userResponse = await request(app).post("/api/1.0/signup").send({
-      username: "user1",
-      email: "user1@mail.com",
+      username: "user2",
+      email: "user2@mail.com",
       password: "Password1",
     });
     const userToken2 = userResponse.body.token;
@@ -441,7 +438,7 @@ describe("View Exercises", () => {
         adminString,
       });
 
-    const response = getExercises(userToken1);
+    const response = await getExercises(userToken1);
 
     expect(response.body.exercises.length).toBe(2);
   });
@@ -510,8 +507,8 @@ describe("View Exercises", () => {
 
     //Create User 2
     const userResponse = await request(app).post("/api/1.0/signup").send({
-      username: "user1",
-      email: "user1@mail.com",
+      username: "user2",
+      email: "user2@mail.com",
       password: "Password1",
     });
     const userToken2 = userResponse.body.token;
@@ -547,8 +544,8 @@ describe("View Exercises", () => {
 
     //Create User 2
     const userResponse = await request(app).post("/api/1.0/signup").send({
-      username: "user1",
-      email: "user1@mail.com",
+      username: "user2",
+      email: "user2@mail.com",
       password: "Password1",
     });
     const userToken2 = userResponse.body.token;

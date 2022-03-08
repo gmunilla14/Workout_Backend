@@ -622,7 +622,7 @@ describe("Get Plans", () => {
     const response = await getPlans(userToken1);
 
     expect(response.body.plans.length).toBe(1);
-    expect(response.body.plans[0].creatorID).toBe(savedUser1._id);
+    expect(response.body.plans[0].creatorID).toBe(String(savedUser1._id));
   });
 
   it("returns status 401 if not authenticated", async () => {
@@ -652,6 +652,6 @@ describe("Get Plans", () => {
     const userToken1 = await createUser();
 
     const response = await getPlans(userToken1);
-    expect(response.body.message).toBe("user inactive");
+    expect(response.body.message).toBe("User inactive");
   });
 });

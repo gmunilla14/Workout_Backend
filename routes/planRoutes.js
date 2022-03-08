@@ -78,4 +78,14 @@ router.post("/api/1.0/plans", auth, async (req, res) => {
   }
 });
 
+router.get("/api/1.0/plans", auth, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (user.inactive) {
+    return res.status(403).send({ message: "User inactive" });
+  }
+
+  const planList = await Plan.find({ creatorID: user.id });
+  res.send({ plans: planList });
+});
+
 module.exports = router;

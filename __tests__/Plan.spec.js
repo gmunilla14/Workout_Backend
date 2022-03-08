@@ -382,47 +382,6 @@ describe("Create workout plans", () => {
     }
   );
 
-  it("returns Invalid plan input if rest has weight", async () => {
-    const bicep = await Muscle.findOne({ name: "Bicep" });
-
-    const userToken1 = await createUser();
-    const userList1 = await User.find();
-    const savedUser1 = userList1[0];
-
-    //Activate User 1
-    await activateUser(userToken1, savedUser1.activationToken);
-
-    //Create User 1 exercise
-    await createExercise("Curls", [bicep._id], "notes", userToken1);
-
-    const exercise = await Exercise.findOne({ name: "Curls" });
-
-    const plan = {
-      name: "Arms Workout",
-      groups: [
-        {
-          exerciseID: exercise._id,
-          sets: [
-            { type: "exercise", reps: 8, weight: 45 },
-            { type: "rest", weight: 60 },
-            {
-              type: "exercise",
-              reps: 8,
-              weight: 45,
-            },
-          ],
-        },
-      ],
-    };
-
-    const response = await request(app)
-      .post("/api/1.0/plans")
-      .send(plan)
-      .set("x-auth-token", userToken1);
-    expect(response.status).toBe(400);
-    expect(response.body.message).toBe("Invalid plan input");
-  });
-
   it("returns Invalid plan input if rest has reps", async () => {
     const bicep = await Muscle.findOne({ name: "Bicep" });
 
@@ -536,5 +495,163 @@ describe("Create workout plans", () => {
       .set("x-auth-token", userToken1);
     expect(response.status).toBe(400);
     expect(response.body.message).toBe("Invalid plan input");
+  });
+});
+
+const getPlans = async (userToken) => {
+  return await request(app)
+    .get("/api/1.0/plans")
+    .set("x-auth-token", userToken);
+};
+
+describe("Get Plans", () => {
+  it("returns 200 when successful", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+
+    const userToken1 = await createUser();
+    const userList1 = await User.find();
+    const savedUser1 = userList1[0];
+
+    //Activate User 1
+    await activateUser(userToken1, savedUser1.activationToken);
+
+    //Create User 1 exercise
+    await createExercise("Curls", [bicep._id], "notes", userToken1);
+
+    const exercise = await Exercise.findOne({ name: "Curls" });
+
+    const plan = {
+      name: "Arms Workout",
+      groups: [
+        {
+          exerciseID: exercise._id,
+          sets: [
+            { type: "exercise", reps: 8, weight: 45 },
+            { type: "rest", duration: 60 },
+            {
+              type: "exercise",
+              reps: 8,
+              weight: 45,
+            },
+          ],
+        },
+      ],
+    };
+
+    await request(app)
+      .post("/api/1.0/plans")
+      .send(plan)
+      .set("x-auth-token", userToken1);
+
+    const response = await getPlans(userToken1);
+    expect(response.status).toBe(200);
+  });
+
+  it("returns only plans created by user", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+
+    const userToken1 = await createUser();
+    const userList1 = await User.find();
+    const savedUser1 = userList1[0];
+
+    //Activate User 1
+    await activateUser(userToken1, savedUser1.activationToken);
+
+    //Create User 1 exercise
+    await createExercise("Curls", [bicep._id], "notes", userToken1);
+
+    const exercise = await Exercise.findOne({ name: "Curls" });
+
+    const plan = {
+      name: "Arms Workout",
+      groups: [
+        {
+          exerciseID: exercise._id,
+          sets: [
+            { type: "exercise", reps: 8, weight: 45 },
+            { type: "rest", duration: 60 },
+            {
+              type: "exercise",
+              reps: 8,
+              weight: 45,
+            },
+          ],
+        },
+      ],
+    };
+
+    const userToken2 = await request(app).post("/api/1.0/signup").send({
+      username: "user2",
+      email: "user2@mail.com",
+      password: "Password1",
+    });
+    const userList2 = await User.find({ username: "user2" });
+    const savedUser2 = userList2[0];
+
+    //Activate User 1
+    await activateUser(userToken2, savedUser2.activationToken);
+
+    const plan2 = {
+      name: "Arms Workout 2",
+      groups: [
+        {
+          exerciseID: exercise._id,
+          sets: [
+            { type: "exercise", reps: 8, weight: 45 },
+            { type: "rest", duration: 60 },
+            {
+              type: "exercise",
+              reps: 8,
+              weight: 45,
+            },
+          ],
+        },
+      ],
+    };
+
+    await request(app)
+      .post("/api/1.0/plans")
+      .send(plan)
+      .set("x-auth-token", userToken1);
+
+    await request(app)
+      .post("/api/1.0/plans")
+      .send(plan2)
+      .set("x-auth-token", userToken2);
+
+    const response = await getPlans(userToken1);
+
+    expect(response.body.plans.length).toBe(1);
+    expect(response.body.plans[0].creatorID).toBe(savedUser1._id);
+  });
+
+  it("returns status 401 if not authenticated", async () => {
+    const response = await request(app)
+      .get("/api/1.0/plans")
+      .set("x-auth-token", "fdsewfe");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns Not authenticated if not authenticated", async () => {
+    const response = await request(app)
+      .get("/api/1.0/plans")
+      .set("x-auth-token", "fdsewfe");
+
+    expect(response.body.message).toBe("Not authenticated");
+  });
+
+  it("returns status 403 if the user is inactive", async () => {
+    const userToken1 = await createUser();
+
+    const response = await getPlans(userToken1);
+    expect(response.status).toBe(403);
+  });
+
+  it("returns User inactive if the user is inactive", async () => {
+    const userToken1 = await createUser();
+
+    const response = await getPlans(userToken1);
+    expect(response.body.message).toBe("user inactive");
   });
 });

@@ -19,16 +19,22 @@ beforeAll(async () => {
     useUnifiedTopology: true,
   });
 
-  muscles.forEach(async (muscle) => {
-    return await request(app)
-      .post("/api/1.0/muscles")
-      .send({
-        string: adminString,
-        muscle: {
-          name: muscle,
-        },
+  const makeMuscles = () =>
+    new Promise((resolve, reject) => {
+      muscles.forEach(async (muscle, index, array) => {
+        await request(app)
+          .post("/api/1.0/muscles")
+          .send({
+            string: adminString,
+            muscle: {
+              name: muscle,
+            },
+          });
+        if (index === array.length - 1) resolve();
       });
-  });
+    });
+
+  await makeMuscles();
 });
 
 beforeEach(async () => {

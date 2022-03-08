@@ -5,7 +5,6 @@ const Joi = require("joi");
 const auth = require("../middleware/auth");
 const { User } = require("../models/User");
 const { Muscle } = require("../models/Muscle");
-const res = require("express/lib/response");
 
 router.post("/api/1.0/exercises", auth, async (req, res) => {
   const schema = Joi.object({

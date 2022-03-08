@@ -57,7 +57,6 @@ const createValidWorkout = async () => {
 
   const exercisesResponse = await getExercises(userToken);
   const exercises = exercisesResponse.body.exercises;
-
   const plan = {
     name: "Arms Workout",
     groups: [
@@ -89,10 +88,12 @@ const createValidWorkout = async () => {
   let currentTime = startTime;
   const newGroups = objectPlan.groups.map((group) => {
     let newGroup = { ...group };
+    delete newGroup._id;
     newSets = newGroup.sets.map((set) => {
       set.startTime = currentTime;
       currentTime += 6000;
       set.endTime = currentTime;
+      delete set._id;
       return set;
     });
     newGroup = { ...newGroup, sets: newSets };
@@ -105,6 +106,7 @@ const createValidWorkout = async () => {
     endTime: currentTime,
     groups: newGroups,
   };
+
   return { userToken, workout };
 };
 
@@ -235,19 +237,21 @@ describe("Create workouts", () => {
       .set("x-auth-token", userToken)
       .send(workout);
 
+    const muscleList = await Muscle.find();
+
     const savedWorkout = await Workout.findOne({});
     const savedPlan = await Plan.findOne({});
-    const savedUser = await User.findOne({ username: "user" });
-    const bicep = await Muscle.findOne({ name: "Bicep" });
-    const tricep = await Muscle.findOne({ name: "Tricep" });
+    const savedUser = await User.findOne({ username: "user1" });
+    const curls = await Exercise.findOne({ name: "Curls" });
+    const tricep = await Exercise.findOne({ name: "Tricep Pushdowns" });
 
-    expect(savedWorkout.planID).toBe(savedPlan._id);
-    expect(savedWorkout.uid).toBe(savedUser._id);
+    expect(savedWorkout.planID).toBe(String(savedPlan._id));
+    expect(savedWorkout.uid).toBe(String(savedUser._id));
     expect(savedWorkout.startTime).toBe(new Date(2020, 1, 30).getTime());
     expect(savedWorkout.groups.length).toBe(2);
-    expect(savedWorkout.groups[0].exerciseID).toBe(bicep._id);
+    expect(savedWorkout.groups[0].exerciseID).toBe(String(curls._id));
     expect(savedWorkout.groups[0].sets.length).toBe(3);
-    expect(savedWorkout.groups[1].exerciseID).toBe(tricep._id);
+    expect(savedWorkout.groups[1].exerciseID).toBe(String(tricep._id));
     expect(savedWorkout.groups[1].sets.length).toBe(1);
   });
 
@@ -325,7 +329,6 @@ describe("Create workouts", () => {
     const { userToken, workout } = await createValidWorkout();
 
     const newGroups = [...workout.groups];
-    console.log(newGroups);
 
     let group = newGroups[0];
     let groupSets = group.sets;
@@ -349,7 +352,6 @@ describe("Create workouts", () => {
     const { userToken, workout } = await createValidWorkout();
 
     const newGroups = [...workout.groups];
-    console.log(newGroups);
 
     let group = newGroups[1];
     let set = group.sets[0];

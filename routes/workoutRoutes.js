@@ -95,4 +95,14 @@ router.post("/api/1.0/workouts", auth, async (req, res) => {
   } catch {}
 });
 
+router.get("/api/1.0/workouts", auth, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (user.inactive) {
+    return res.status(403).send({ message: "User inactive" });
+  }
+
+  const workouts = await Workout.find({ uid: user._id });
+  res.send({ workouts });
+});
+
 module.exports = router;

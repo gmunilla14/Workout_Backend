@@ -393,3 +393,178 @@ describe("Create workouts", () => {
     expect(response.body.message).toBe("Invalid exercise");
   });
 });
+
+describe("Get workouts", () => {
+  it("returns 200 when correctly authenticated", async () => {
+    const { userToken, workout } = await createValidWorkout();
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout);
+
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", userToken);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("returns workouts with correct fields when correctly authenticated", async () => {
+    const { userToken, workout } = await createValidWorkout();
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout);
+
+    const savedPlan = await Plan.findOne({});
+    const savedUser = await User.findOne({ username: "user1" });
+    const curls = await Exercise.findOne({ name: "Curls" });
+    const tricep = await Exercise.findOne({ name: "Tricep Pushdowns" });
+
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", userToken);
+
+    const newWorkout = response.body.workouts[0];
+
+    expect(newWorkout.planID).toBe(String(savedPlan._id));
+    expect(newWorkout.uid).toBe(String(savedUser._id));
+    expect(newWorkout.startTime).toBe(new Date(2020, 1, 30).getTime());
+    expect(newWorkout.groups.length).toBe(2);
+    expect(newWorkout.groups[0].exerciseID).toBe(String(curls._id));
+    expect(newWorkout.groups[0].sets.length).toBe(3);
+    expect(newWorkout.groups[1].exerciseID).toBe(String(tricep._id));
+    expect(newWorkout.groups[1].sets.length).toBe(1);
+  });
+
+  it("only returns workouts with the given user id", async () => {
+    const { userToken, workout } = await createValidWorkout();
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout);
+
+    //Create User
+    const userResponse = await request(app).post("/api/1.0/signup").send({
+      username: "user2",
+      email: "user2@mail.com",
+      password: "Password1",
+    });
+    const userToken1 = userResponse.body.token;
+    const userList = await User.find({ username: "user2" });
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken1, savedUser.activationToken);
+
+    const exercisesResponse = await getExercises(userToken);
+    const exercises = exercisesResponse.body.exercises;
+    const plan = {
+      name: "Other Workout",
+      groups: [
+        {
+          exerciseID: exercises[2]._id,
+          sets: [
+            { type: "exercise", reps: 8, weight: 40 },
+            { type: "rest", duration: 60 },
+            { type: "exercise", reps: 6, weight: 40 },
+          ],
+        },
+      ],
+    };
+
+    await request(app)
+      .post("/api/1.0/plans")
+      .send(plan)
+      .set("x-auth-token", userToken1);
+
+    const savedPlan = await Plan.findOne({ name: "Arms Workout" });
+
+    let objectPlan = savedPlan.toObject();
+    const startDate = new Date(2020, 1, 30);
+    const startTime = startDate.getTime();
+    let currentTime = startTime;
+    const newGroups = objectPlan.groups.map((group) => {
+      let newGroup = { ...group };
+      delete newGroup._id;
+      newSets = newGroup.sets.map((set) => {
+        set.startTime = currentTime;
+        currentTime += 6000;
+        set.endTime = currentTime;
+        delete set._id;
+        return set;
+      });
+      newGroup = { ...newGroup, sets: newSets };
+      return newGroup;
+    });
+
+    const workout2 = {
+      planID: savedPlan._id,
+      startTime: startTime,
+      endTime: currentTime,
+      groups: newGroups,
+    };
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken1)
+      .send(workout2);
+
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", userToken1);
+
+    expect(response.body.workouts.length).toBe(1);
+  });
+
+  it("returns 401 status when user is not authenticated", async () => {
+    const { userToken, workout } = await createValidWorkout();
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout);
+
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", "fewfsdafdswf");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns Not authenticated when user is not authenticated", async () => {
+    const { userToken, workout } = await createValidWorkout();
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout);
+
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", "fewfsdafdswf");
+
+    expect(response.body.message).toBe("Not authenticated");
+  });
+
+  it("returns status 403 when user is not authenticated", async () => {
+    const userToken = await createUser();
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", userToken);
+
+    expect(response.status).toBe(403);
+  });
+
+  it("returns User inactive when user is not authenticated", async () => {
+    const userToken = await createUser();
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", userToken);
+
+    expect(response.body.message).toBe("User inactive");
+  });
+});

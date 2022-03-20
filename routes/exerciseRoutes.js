@@ -21,10 +21,9 @@ router.post("/api/1.0/exercises", auth, async (req, res) => {
       "array.empty": "Exercise must have at least one muscle",
       "array.includes": "String required",
     }),
-    notes: Joi.string().max(200).messages({
+    notes: Joi.string().allow("").max(200).messages({
       "string.max": "Notes must be at most 200 characters",
     }),
-    uid: Joi.string(),
     adminString: Joi.string().max(100),
   });
 
@@ -36,7 +35,9 @@ router.post("/api/1.0/exercises", auth, async (req, res) => {
     if (req.body.muscles.length < 1) {
       noMuscles = true;
     }
-  } catch (err) {}
+  } catch (err) {
+    noMuscles = true;
+  }
 
   //Check if muscles array contains an invalid muscle
   let invalidMuscle = false;
@@ -81,6 +82,7 @@ router.post("/api/1.0/exercises", auth, async (req, res) => {
 
     return res.status(400).send({
       validationErrors,
+      message: error,
     });
   }
   const { name, muscles, notes } = req.body;

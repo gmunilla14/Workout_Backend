@@ -88,4 +88,84 @@ router.get("/api/1.0/plans", auth, async (req, res) => {
   res.send({ plans: planList });
 });
 
+router.put("/api/1.0/plans/:id", auth, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (user.inactive) {
+    return res.status(403).send({ message: "User inactive" });
+  }
+
+  const schema = Joi.object({
+    name: Joi.string().required().max(100),
+    groups: Joi.array()
+      .items(
+        Joi.object({
+          exerciseID: Joi.string().required(),
+          sets: Joi.array().items(
+            Joi.object({
+              type: Joi.string().required().valid("exercise", "rest"),
+              reps: Joi.number(),
+              weight: Joi.number(),
+              duration: Joi.number(),
+            })
+          ),
+        })
+      )
+      .min(1),
+  });
+
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return res.status(400).send({ message: "Invalid plan input" });
+  }
+
+  let invalidGroup = false;
+
+  const checkExercises = () =>
+    new Promise((resolve, reject) => {
+      req.body.groups.forEach(async (group, index, array) => {
+        try {
+          const exercise = await Exercise.findById(group.exerciseID);
+          if (!exercise) {
+            invalidGroup = true;
+          }
+        } catch {
+          invalidGroup = true;
+        }
+        if (group.sets.length > 0) {
+          group.sets.forEach(async (set) => {
+            if (
+              (set.type === "rest" && (set.weight || set.reps)) ||
+              (set.type === "exercise" && set.duration)
+            ) {
+              invalidGroup = true;
+            }
+          });
+        } else {
+          invalidGroup = true;
+        }
+
+        if (index === array.length - 1) resolve();
+      });
+    });
+
+  await checkExercises();
+
+  if (invalidGroup) {
+    return res.status(400).send({ message: "Invalid plan input" });
+  }
+
+  let plan = await Plan.findById(req.params.id);
+  if (plan.creatorID !== req.user.id) {
+    return res
+      .status(401)
+      .send({ message: "Can only edit plans you have created" });
+  }
+
+  const newPlan = req.body;
+
+  await Plan.findByIdAndUpdate(plan._id, newPlan);
+
+  return res.status(200).send({ message: "Plan edited" });
+});
+
 module.exports = router;

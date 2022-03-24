@@ -82,7 +82,7 @@ router.post("/api/1.0/signup", async (req, res) => {
     newUser = await newUser.save();
     //---------------------------------------------Return JWT Token-----------------------
     const token = jwt.sign(
-      { id: newUser._id, username, email },
+      { id: newUser._id, username, email, inactive: true },
       process.env.SECRET_KEY
     );
     return res.send({ message: "User created", token });
@@ -110,7 +110,12 @@ router.post("/api/1.0/signin", async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email },
+      {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        inactive: user.inactive,
+      },
       process.env.SECRET_KEY
     );
 

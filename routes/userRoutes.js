@@ -100,10 +100,20 @@ router.post("/api/1.0/activate", auth, async (req, res) => {
     user.inactive = false;
     user.activationToken = null;
     await user.save();
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        inactive: user.inactive,
+      },
+      process.env.SECRET_KEY
+    );
+    return res.send({ message: "Account activated", token });
   } catch (err) {
     return res.status(400).send({ message: "Invalid activation request" });
   }
-  res.send({ message: "Account activated" });
 });
 
 router.post("/api/1.0/signin", async (req, res) => {

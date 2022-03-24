@@ -269,6 +269,27 @@ describe("Account Activation", () => {
     );
     expect(response.body.message).toBe("Invalid activation request");
   });
+
+  it("returns updated JWT token on successful activation", async () => {
+    //Create new user
+    const postResponse = await postUser();
+
+    //Get new user
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate new user
+    const response = await activateAccount(
+      savedUser.activationToken,
+      postResponse.body.token
+    );
+
+    const decoded = jwt.decode(response.body.token);
+    expect(decoded.id).toBe(savedUser.id);
+    expect(decoded.username).toBe(defaultUser.username);
+    expect(decoded.email).toBe(defaultUser.email);
+    expect(decoded.inactive).toBe(false);
+  });
 });
 
 describe("Sign In User", () => {

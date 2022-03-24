@@ -114,15 +114,17 @@ describe("Sign Up User", () => {
     expect(savedUser.activationToken).toBeTruthy();
   });
 
-  it("returns a JWT token with id, username, and email on successful creation", async () => {
+  it("returns a JWT token with id, username, email, and inactive status on successful creation", async () => {
     const response = await postUser();
     const returnedToken = response.body.token;
     const decoded = jwt.decode(returnedToken);
+
     const userList = await User.find();
     const savedUser = userList[0];
     expect(decoded.id).toBe(savedUser.id);
     expect(decoded.username).toBe(defaultUser.username);
     expect(decoded.email).toBe(defaultUser.email);
+    expect(decoded.inactive).toBe(true);
   });
 
   it.each([
@@ -286,7 +288,7 @@ describe("Sign In User", () => {
     expect(response.status).toBe(200);
   });
 
-  it("returns JWT token with id, username, and email on successful sign in to active account", async () => {
+  it("returns JWT token with id, username, email and inactive status on successful sign in to active account", async () => {
     //Create new user
     const postResponse = await postUser();
 
@@ -303,6 +305,7 @@ describe("Sign In User", () => {
     expect(decoded.id).toBe(savedUser.id);
     expect(decoded.username).toBe(defaultUser.username);
     expect(decoded.email).toBe(defaultUser.email);
+    expect(decoded.inactive).toBe(false);
   });
 
   it("returns status 400 when incorrect password is sent to active account", async () => {

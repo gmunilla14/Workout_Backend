@@ -117,7 +117,7 @@ describe("Create workout plans", () => {
     expect(response.status).toBe(200);
   });
 
-  it("returns Plan created if valid plan is send by active user", async () => {
+  it("returns Plan created message if valid plan is send by active user", async () => {
     const bicep = await Muscle.findOne({ name: "Bicep" });
 
     const userToken1 = await createUser();
@@ -155,6 +155,46 @@ describe("Create workout plans", () => {
       .send(plan)
       .set("x-auth-token", userToken1);
     expect(response.body.message).toBe("Plan created");
+  });
+
+  it("returns plan in response if valid plan is send by active user", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+
+    const userToken1 = await createUser();
+    const userList1 = await User.find();
+    const savedUser1 = userList1[0];
+
+    //Activate User 1
+    await activateUser(userToken1, savedUser1.activationToken);
+
+    //Create User 1 exercise
+    await createExercise("Curls", [bicep._id], "notes", userToken1);
+
+    const exercise = await Exercise.findOne({ name: "Curls" });
+
+    const plan = {
+      name: "Arms Workout",
+      groups: [
+        {
+          exerciseID: exercise._id,
+          sets: [
+            { type: "exercise", reps: 8, weight: 45 },
+            { type: "rest", duration: 60 },
+            {
+              type: "exercise",
+              reps: 8,
+              weight: 45,
+            },
+          ],
+        },
+      ],
+    };
+
+    const response = await request(app)
+      .post("/api/1.0/plans")
+      .send(plan)
+      .set("x-auth-token", userToken1);
+    expect(response.body.plan.name).toBe("Arms Workout");
   });
 
   it("creates plan in databse with relevant fields", async () => {

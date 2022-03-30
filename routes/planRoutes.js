@@ -72,20 +72,24 @@ router.post("/api/1.0/plans", auth, async (req, res) => {
     let newPlan = new Plan({ ...req.body, creatorID: req.user.id });
 
     newPlan = await newPlan.save();
-    res.send({ message: "Plan created" });
+    res.send({ message: "Plan created", plan: newPlan });
   } catch (err) {
     res.send({ message: err });
   }
 });
 
 router.get("/api/1.0/plans", auth, async (req, res) => {
-  const user = await User.findById(req.user.id);
-  if (user.inactive) {
-    return res.status(403).send({ message: "User inactive" });
-  }
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.inactive) {
+      return res.status(403).send({ message: "User inactive" });
+    }
 
-  const planList = await Plan.find({ creatorID: user.id });
-  res.send({ plans: planList });
+    const planList = await Plan.find({ creatorID: user.id });
+    return res.send({ plans: planList });
+  } catch (err) {
+    return res.status(400).send({ message: "Server Error" });
+  }
 });
 
 router.put("/api/1.0/plans/:id", auth, async (req, res) => {

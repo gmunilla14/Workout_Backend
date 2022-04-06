@@ -774,7 +774,7 @@ describe("Edit plan", () => {
     expect(response.status).toBe(200);
   });
 
-  it("returns Plan edited if valid plan is sent by active user", async () => {
+  it("returns Plan edited message if valid plan is sent by active user", async () => {
     const bicep = await Muscle.findOne({ name: "Bicep" });
     const tricep = await Muscle.findOne({ name: "Tricep" });
 
@@ -847,6 +847,77 @@ describe("Edit plan", () => {
       .set("x-auth-token", userToken1);
 
     expect(response.body.message).toBe("Plan edited");
+  });
+
+  it("returns edited plan if valid plan is sent by active user", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+    const tricep = await Muscle.findOne({ name: "Tricep" });
+
+    const userToken1 = await createUser();
+    const userList1 = await User.find();
+    const savedUser1 = userList1[0];
+
+    //Activate User 1
+    await activateUser(userToken1, savedUser1.activationToken);
+
+    //Create User 1 exercise
+    await createExercise("Curls", [bicep._id], "notes", userToken1);
+    await createExercise("Tricep Pushdowns", [tricep._id], "notes", userToken1);
+
+    const exercise1 = await Exercise.findOne({ name: "Curls" });
+    const exercise2 = await Exercise.findOne({ name: "Tricep Pushdowns" });
+
+    const plan = {
+      name: "Arms Workout",
+      groups: [
+        {
+          exerciseID: exercise1._id,
+          sets: [
+            { type: "exercise", reps: 8, weight: 45 },
+            { type: "rest", duration: 60 },
+            {
+              type: "exercise",
+              reps: 8,
+              weight: 45,
+            },
+          ],
+        },
+        {
+          exerciseID: exercise2._id,
+          sets: [{ type: "exercise", reps: 10, weight: 55 }],
+        },
+      ],
+    };
+
+    await request(app)
+      .post("/api/1.0/plans")
+      .send(plan)
+      .set("x-auth-token", userToken1);
+
+    const savedPlan = await Plan.findOne({ name: "Arms Workout" });
+
+    const response = await request(app)
+      .put(`/api/1.0/plans/${savedPlan._id}`)
+      .send({
+        name: "Arms Workout",
+        groups: [
+          {
+            exerciseID: exercise1._id,
+            sets: [
+              { type: "exercise", reps: 8, weight: 45 },
+              { type: "rest", duration: 60 },
+              {
+                type: "exercise",
+                reps: 8,
+                weight: 45,
+              },
+            ],
+          },
+        ],
+      })
+      .set("x-auth-token", userToken1);
+
+    expect(response.body.plan.groups.length).toBe(1);
   });
 
   it("returns Not authenticated if user is not authenticated", async () => {

@@ -5,6 +5,7 @@ const exerciseRouter = require("./routes/exerciseRoutes");
 const planRouter = require("./routes/planRoutes");
 const workoutRouter = require("./routes/workoutRoutes");
 const cleanupRouter = require("./routes/cleanupRoutes");
+const dataRouter = require("./routes/dataRoutes");
 require("dotenv").config();
 
 const app = express();
@@ -15,4 +16,5 @@ app.use(exerciseRouter);
 app.use(planRouter);
 app.use(workoutRouter);
 app.use(cleanupRouter);
+app.use(dataRouter);
 module.exports = app;

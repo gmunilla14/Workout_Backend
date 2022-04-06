@@ -29,17 +29,6 @@ const activateUser = async (jwtToken, activationToken) => {
     .send({ token: activationToken });
 };
 
-const createExercise = async (name, muscles, notes, userToken) => {
-  return await request(app)
-    .post("/api/1.0/exercises")
-    .set("x-auth-token", userToken)
-    .send({
-      name,
-      muscles,
-      notes,
-    });
-};
-
 const getExercises = async (userToken) => {
   return await request(app)
     .get("/api/1.0/exercises")

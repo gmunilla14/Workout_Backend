@@ -28,6 +28,7 @@ router.post("/api/1.0/plans", auth, async (req, res) => {
   });
 
   const { error } = schema.validate(req.body);
+  console.log(error);
   if (error) {
     return res.status(400).send({ message: "Invalid plan input" });
   }
@@ -165,11 +166,12 @@ router.put("/api/1.0/plans/:id", auth, async (req, res) => {
       .send({ message: "Can only edit plans you have created" });
   }
 
-  const newPlan = req.body;
+  let newPlan = req.body;
 
   await Plan.findByIdAndUpdate(plan._id, newPlan);
 
-  return res.status(200).send({ message: "Plan edited" });
+  newPlan = { ...newPlan, _id: plan._id };
+  return res.status(200).send({ message: "Plan edited", plan: newPlan });
 });
 
 module.exports = router;

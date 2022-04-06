@@ -17,21 +17,24 @@ router.post("/api/1.0/workouts", auth, async (req, res) => {
     planID: Joi.string().required().max(40),
     startTime: Joi.number().required(),
     endTime: Joi.number().required(),
-    groups: Joi.array().items(
-      Joi.object({
-        exerciseID: Joi.string().required().max(40),
-        sets: Joi.array().items(
-          Joi.object({
-            type: Joi.string().required().valid("exercise", "rest"),
-            reps: Joi.number(),
-            weight: Joi.number(),
-            duration: Joi.number(),
-            startTime: Joi.number().required(),
-            endTime: Joi.number().required(),
-          })
-        ),
-      })
-    ),
+    groups: Joi.array()
+      .items(
+        Joi.object({
+          exerciseID: Joi.string().required().max(40),
+          sets: Joi.array().items(
+            Joi.object({
+              type: Joi.string().required().valid("exercise", "rest"),
+              reps: Joi.number(),
+              weight: Joi.number(),
+              duration: Joi.number(),
+              startTime: Joi.number().required(),
+              endTime: Joi.number().required(),
+            })
+          ),
+        })
+      )
+      .min(1)
+      .required(),
   });
 
   const { error } = schema.validate(req.body);

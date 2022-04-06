@@ -245,9 +245,8 @@ describe("Get volume over time data", () => {
       }
     });
 
-    expect(response.body.y[0]).toBe(volume1 / 18);
-    expect(response.body.y.length).toBe(2);
-    expect(response.body.x.length).toBe(2);
+    expect(response.body.data[0].y).toBe(volume1 / 18);
+    expect(response.body.data.length).toBe(2);
   });
 
   it("returns object with correct number of workouts for user ", async () => {
@@ -316,8 +315,7 @@ describe("Get volume over time data", () => {
       .get(`/api/1.0/data?type=volpersec&exercise=${exercise._id}`)
       .set("x-auth-token", userToken);
 
-    expect(response.body.y.length).toBe(1);
-    expect(response.body.x.length).toBe(1);
+    expect(response.body.data.length).toBe(1);
   });
 
   it("returns Not authenticated if user is not authenticated", async () => {

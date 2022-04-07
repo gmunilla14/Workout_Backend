@@ -17,13 +17,13 @@ router.get("/api/1.0/data", auth, async (req, res) => {
   });
 
   //Extract relevant data
-  let x = [];
-  let y = [];
+
+  let data = [];
+
   if (req.query.type === "volpersec") {
-    x = groups.map((group) => {
-      return group.sets[0].startTime;
-    });
-    y = groups.map((group) => {
+    groups.forEach((group) => {
+      const x = new Date(group.sets[0].startTime);
+
       let sum = 0;
       group.sets.forEach((set) => {
         if (set.type === "exercise") {
@@ -31,12 +31,15 @@ router.get("/api/1.0/data", auth, async (req, res) => {
         }
       });
 
-      let start = group.sets[0].startTime;
-      let end = group.sets[group.sets.length - 1].endTime;
-      return (sum * 1000) / (end - start);
+      const start = group.sets[0].startTime;
+      const end = group.sets[group.sets.length - 1].endTime;
+
+      const y = (sum * 1000) / (end - start);
+
+      data.push({ x, y });
     });
   }
-  res.send({ x, y });
+  res.send({ data: data });
 });
 
 module.exports = router;

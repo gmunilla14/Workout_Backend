@@ -104,7 +104,7 @@ router.get("/api/1.0/workouts", auth, async (req, res) => {
     return res.status(403).send({ message: "User inactive" });
   }
 
-  const workouts = await Workout.find({ uid: user._id });
+  let workouts = await Workout.find({ uid: user._id }).sort({ startTime: -1 });
   res.send({ workouts });
 });
 

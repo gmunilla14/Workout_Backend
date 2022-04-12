@@ -94,7 +94,7 @@ router.post("/api/1.0/workouts", auth, async (req, res) => {
   try {
     let newWorkout = new Workout(workout);
     newWorkout = await newWorkout.save();
-    res.send({ message: "Workout created" });
+    res.send({ message: "Workout created", workout: newWorkout });
   } catch {}
 });
 

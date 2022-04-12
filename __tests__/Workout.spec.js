@@ -72,7 +72,7 @@ const createValidWorkout = async () => {
   const savedPlan = await Plan.findOne({ name: "Arms Workout" });
 
   let objectPlan = savedPlan.toObject();
-  const startDate = new Date(2020, 1, 30);
+  const startDate = new Date(2020, 1, 15);
   const startTime = startDate.getTime();
   let currentTime = startTime;
   const newGroups = objectPlan.groups.map((group) => {
@@ -247,7 +247,7 @@ describe("Create workouts", () => {
 
     expect(savedWorkout.planID).toBe(String(savedPlan._id));
     expect(savedWorkout.uid).toBe(String(savedUser._id));
-    expect(savedWorkout.startTime).toBe(new Date(2020, 1, 30).getTime());
+    expect(savedWorkout.startTime).toBe(new Date(2020, 1, 15).getTime());
     expect(savedWorkout.groups.length).toBe(2);
     expect(savedWorkout.groups[0].exerciseID).toBe(String(curls._id));
     expect(savedWorkout.groups[0].sets.length).toBe(3);
@@ -431,7 +431,7 @@ describe("Get workouts", () => {
 
     expect(newWorkout.planID).toBe(String(savedPlan._id));
     expect(newWorkout.uid).toBe(String(savedUser._id));
-    expect(newWorkout.startTime).toBe(new Date(2020, 1, 30).getTime());
+    expect(newWorkout.startTime).toBe(new Date(2020, 1, 15).getTime());
     expect(newWorkout.groups.length).toBe(2);
     expect(newWorkout.groups[0].exerciseID).toBe(String(curls._id));
     expect(newWorkout.groups[0].sets.length).toBe(3);
@@ -518,6 +518,56 @@ describe("Get workouts", () => {
       .set("x-auth-token", userToken1);
 
     expect(response.body.workouts.length).toBe(1);
+  });
+
+  it("returns workouts with the most recent first", async () => {
+    const { userToken, workout } = await createValidWorkout();
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout);
+
+    const savedPlan = await Plan.findOne({ name: "Arms Workout" });
+
+    let objectPlan = savedPlan.toObject();
+    const startDate = new Date(2020, 2, 30);
+    const startTime = startDate.getTime();
+    let currentTime = startTime;
+    const newGroups = objectPlan.groups.map((group) => {
+      let newGroup = { ...group };
+      delete newGroup._id;
+      newSets = newGroup.sets.map((set) => {
+        set.startTime = currentTime;
+        currentTime += 6000;
+        set.endTime = currentTime;
+        delete set._id;
+        return set;
+      });
+      newGroup = { ...newGroup, sets: newSets };
+      return newGroup;
+    });
+
+    const workout2 = {
+      planID: savedPlan._id,
+      startTime: startTime,
+      endTime: currentTime,
+      groups: newGroups,
+    };
+
+    await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout2);
+
+    const response = await request(app)
+      .get("/api/1.0/workouts")
+      .set("x-auth-token", userToken);
+
+    expect(response.body.workouts.length).toBe(2);
+    expect(new Date(response.body.workouts[0].startTime).getMonth()).toBe(
+      new Date(2020, 2, 30).getMonth()
+    );
   });
 
   it("returns 401 status when user is not authenticated", async () => {

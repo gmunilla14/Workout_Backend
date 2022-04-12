@@ -205,6 +205,17 @@ describe("Create workouts", () => {
     expect(response.body.message).toBe("Workout created");
   });
 
+  it("returns the workout object when correctly sent", async () => {
+    const { userToken, workout } = await createValidWorkout();
+
+    const response = await request(app)
+      .post("/api/1.0/workouts")
+      .set("x-auth-token", userToken)
+      .send(workout);
+
+    expect(response.body.workout).toBeTruthy();
+  });
+
   it("creates workout in database", async () => {
     const { userToken, workout } = await createValidWorkout();
 

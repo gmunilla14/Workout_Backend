@@ -64,10 +64,7 @@ router.post("/api/1.0/signup", async (req, res) => {
 
   //--------------------------------------Create Activation Token-----------------------------
 
-  const activationToken = crypto
-    .randomBytes(16)
-    .toString("hex")
-    .substring(0, 16);
+  const activationToken = crypto.randomBytes(6).toString("hex").substring(0, 6);
 
   const user = {
     username,

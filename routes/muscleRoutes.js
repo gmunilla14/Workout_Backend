@@ -38,7 +38,7 @@ router.get("/api/1.0/muscles", auth, async (req, res) => {
       return res.status(403).send({ message: "User inactive" });
     }
 
-    const muscles = await Muscle.find();
+    const muscles = await Muscle.find().sort({ name: 1 });
     res.send(muscles);
   } catch (err) {
     return res.status(401).send({ message: "Not authenticated" });

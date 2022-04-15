@@ -22,7 +22,7 @@ router.get("/api/1.0/data", auth, async (req, res) => {
 
   if (req.query.type === "volpersec") {
     groups.forEach((group) => {
-      const x = new Date(group.sets[0].startTime);
+      const x = group.sets[0].startTime;
 
       let sum = 0;
       group.sets.forEach((set) => {

@@ -28,7 +28,6 @@ router.post("/api/1.0/plans", auth, async (req, res) => {
   });
 
   const { error } = schema.validate(req.body);
-  console.log(error);
   if (error) {
     return res.status(400).send({ message: "Invalid plan input" });
   }

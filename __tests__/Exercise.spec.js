@@ -372,6 +372,36 @@ describe("View Exercises", () => {
     expect(response.body.exercises.length).toBe(2);
   });
 
+  it("returns exercises in alphabetical order", async () => {
+    const bicep = await Muscle.findOne({ name: "Bicep" });
+    const tricep = await Muscle.findOne({ name: "Tricep" });
+
+    //Create User
+    const userToken = await createUser();
+    const userList = await User.find();
+    const savedUser = userList[0];
+
+    //Activate User
+    await activateUser(userToken, savedUser.activationToken);
+
+    //Create User exercise
+    await createExercise("Zurls", [bicep._id], "notes", userToken);
+
+    //Create Admin Exercise
+    await request(app)
+      .post("/api/1.0/exercises")
+      .set("x-auth-token", userToken)
+      .send({
+        name: defaultExercise.name,
+        muscles: [tricep._id],
+        notes: defaultExercise.notes,
+        adminString,
+      });
+
+    const response = await getExercises(userToken);
+    expect(response.body.exercises[0].name).toBe(defaultExercise.name);
+  });
+
   it("returns exercise with all fields", async () => {
     const bicep = await Muscle.findOne({ name: "Bicep" });
 

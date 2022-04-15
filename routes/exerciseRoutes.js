@@ -124,7 +124,7 @@ router.get("/api/1.0/exercises", auth, async (req, res) => {
 
     const exercises = await Exercise.find({
       uid: { $in: ["admin", req.user.id] },
-    });
+    }).sort({ name: 1 });
 
     if (exercises.length < 1) {
       return res.send({ message: "No exercises" });

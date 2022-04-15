@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const Joi = require("joi");
 const auth = require("../middleware/auth");
+const nodeMailer = require("nodemailer");
 
 router.post("/api/1.0/signup", async (req, res) => {
   //------------------------------Input Validation--------------------------------
@@ -82,6 +83,31 @@ router.post("/api/1.0/signup", async (req, res) => {
       { id: newUser._id, username, email, inactive: true },
       process.env.SECRET_KEY
     );
+
+    let transporter = nodeMailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: "workouttrackeractivation@gmail.com",
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    let mailOptions = {
+      from: '"Workout Tracker" <workouttrackeractivation@gmail.com>',
+      to: req.body.email,
+      subject: "Workout Tracker Activation Token",
+      text: `Activation Token: ${activationToken}`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return console.log(error);
+      }
+      console.log("Message sent");
+    });
+
     return res.send({ message: "User created", token });
   } catch (err) {
     return res.send({ error: err.message });
@@ -172,7 +198,7 @@ router.delete("/api/1.0/users", auth, async (req, res) => {
 
 router.get("/api/1.0/token", auth, async (req, res) => {
   const user = await User.findOne({ email: req.user.email });
-  res.send({ token: user.activationToken });
+  res.send({ token: user.activationToken, email: user.email });
 });
 
 module.exports = router;
